@@ -148,6 +148,16 @@ export interface IConfigurable<Options extends object = any, Result = any> {
 }
 
 // --------------------------------------------------------------------------------------------------------
+export type TAuthStrategy = 'jwt' | 'basic';
+
+// --------------------------------------------------------------------------------------------------------
+export interface IExecutionContext {
+  fileName?: string;
+  className?: string;
+  methodName?: string;
+}
+
+// --------------------------------------------------------------------------------------------------------
 // JSX Types (re-exported from Hono for convenience)
 // --------------------------------------------------------------------------------------------------------
 export type { Child, FC, PropsWithChildren } from 'hono/jsx';
