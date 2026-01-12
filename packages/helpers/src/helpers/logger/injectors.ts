@@ -9,8 +9,22 @@ export function injectLogger(options?: { customLogger?: _WLogger }) {
 
     Object.defineProperty(target, propertyKey, {
       get(this: any) {
-        const logger = new Logger({});
+        const logger = new Logger({
+          boundInstance: this,
+          customLogger: options?.customLogger,
+        });
+
+        Object.defineProperty(this, propertyKey, {
+          value: logger,
+          writable: false,
+          configurable: false,
+          enumerable: false,
+        });
+
+        return logger;
       },
+      configurable: true,
+      enumerable: false,
     });
   };
 }

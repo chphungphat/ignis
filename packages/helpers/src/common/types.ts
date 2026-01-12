@@ -158,6 +158,14 @@ export interface IExecutionContext {
 }
 
 // --------------------------------------------------------------------------------------------------------
+export interface IRequestContext {
+  requestId?: string;
+  route?: string;
+  method?: string;
+  userId?: string;
+}
+
+// --------------------------------------------------------------------------------------------------------
 // JSX Types (re-exported from Hono for convenience)
 // --------------------------------------------------------------------------------------------------------
 export type { Child, FC, PropsWithChildren } from 'hono/jsx';

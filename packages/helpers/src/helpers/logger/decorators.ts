@@ -1,13 +1,18 @@
 import 'reflect-metadata';
 
-import { IExecutionContext } from '@/common';
+import { HTTP, IExecutionContext, IRequestContext } from '@/common';
+import { tryGetContext } from 'hono/context-storage';
 
+// The key is the instance of class itself
 // Using WeakMap to ensure the key-value be able to be garbage collected
-// Prevent memory leak
+// once the class being terminated (like class with scope = TRANSIENT), prevent memory leak
+// Why not just object? Because the instance reference is diffrent for each requst
+// but javascript treat them as equal if use as key in object
+// leading to the second request might override the first requets context
 const executionContextMap = new WeakMap<any, IExecutionContext>();
 
 /**
- * @logContext() - Class Decorator
+ * Class Decorator
  * ─────────────────────────────────────────────────────────
  *
  * Automatically wraps all methods in a class to capture execution context.
@@ -53,6 +58,7 @@ export function logContext(opts: { fileName?: string }) {
 
       const originalMethod = descriptor.value;
 
+      // When a method being invoked
       descriptor.value = function (this: any, ...args: any[]) {
         const previousContext = executionContextMap.get(this);
 
@@ -66,7 +72,7 @@ export function logContext(opts: { fileName?: string }) {
           // execute original method
           return originalMethod.apply(this, args);
         } finally {
-          // Restore previous context in case of nested execution
+          // Restore previous context in case of chain execution
           if (previousContext) {
             executionContextMap.set(this, previousContext);
           } else {
@@ -84,9 +90,6 @@ export function logContext(opts: { fileName?: string }) {
 
 // --------------------------------------------------------------------------
 /**
- * getlogContext()
- * ─────────────────────────────────────────────────────────
- *
  * Retrieves the current execution context for a class instance.
  *
  * CALLED BY:
@@ -105,9 +108,6 @@ export function getlogContext(instance?: any): IExecutionContext | null {
 
 // --------------------------------------------------------------------------
 /**
- * haslogContext()
- * ─────────────────────────────────────────────────────────
- *
  * Checks if an instance has logging context without retrieving it.
  *
  * @param instance - The class instance
@@ -123,13 +123,29 @@ export function haslogContext(instance?: any): boolean {
 
 // --------------------------------------------------------------------------
 /**
- * clearlogContext() - Manual Context Cleanup
- * ─────────────────────────────────────────────────────────
- *
  * Manually clears context for an instance.
  *
  * @param instance - The class instance
  */
 export function clearlogContext(instance: any): void {
   executionContextMap.delete(instance);
+}
+
+// --------------------------------------------------------------------------
+export function getRequestContext(): IRequestContext | null {
+  const context = tryGetContext();
+
+  if (!context) {
+    return null;
+  }
+
+  const requestId = context.req.header(HTTP.Headers.REQUEST_TRACING_ID);
+  const route = context.req.path;
+  const method = context.req.method;
+
+  return {
+    requestId,
+    route,
+    method,
+  };
 }
