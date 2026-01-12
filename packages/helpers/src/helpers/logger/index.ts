@@ -4,5 +4,7 @@ export * from './default-logger';
 export * from './factory';
 export * from './hf-logger';
 export * from './injectors';
-export * from './transports';
 export * from './types';
+
+export * from './transports';
+export * from './context-aware-logger/';

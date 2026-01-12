@@ -1,53 +1,55 @@
-import 'reflect-metadata';
-
-import { HTTP, IExecutionContext, IRequestContext } from '@/common';
-import { tryGetContext } from 'hono/context-storage';
-
-// The key is the instance of class itself
-// Using WeakMap to ensure the key-value be able to be garbage collected
-// once the class being terminated (like class with scope = TRANSIENT), prevent memory leak
-// Why not just object? Because the instance reference is diffrent for each requst
-// but javascript treat them as equal if use as key in object
-// leading to the second request might override the first requets context
-const executionContextMap = new WeakMap<any, IExecutionContext>();
+import { IExecutionContext } from '@/common';
+import { runWithExecutionContext } from './context-aware-logger/context-helper';
+import { getContextAwareLogger } from './context-aware-logger/context-aware-logger';
 
 /**
- * Class Decorator
- * ─────────────────────────────────────────────────────────
+ * @logContext - Class decorator for automatic execution context capture and logger injection
+ * Decorator runs ONCE at class definition time (no overhead)
+ * And yes, I was mimicking Java's SLF4J
  *
- * Automatically wraps all methods in a class to capture execution context.
- * This decorator runs ONCE when the class is defined (not on every method call).
+ * WHAT IT DOES:
+ * 1. Wraps all methods to capture className and methodName
+ * 2. Stores context in AsyncLocalStorage (thread-safe)
+ * 3. Auto-injects this.logger property (optional, default: true)
  *
- * HOW IT WORKS:
+ * WHY ASYNC LOCAL STORAGE:
+ * - Thread-safe: Each request/job has isolated storage
+ * - Works with singletons: Context is per-execution, not per-instance
+ * - No race conditions: Request 1 and Request 2 can't interfere
  *
- * 1. Decorator receives the constructor function
- * 2. Iterates through all prototype methods
- * 3. Wraps each method to set context BEFORE execution
- * 4. Context is stored in WeakMap with instance as key
- * 5. Original method executes with context available
- * 6. Context is restored/cleaned after method completes
- *
+ * @param opts Options object
+ * @param opts.fileName Optional file name to include in context
+ * @param opts.autoInject Auto-inject logger property (default: true)
  *
  * @example
- * ```typescript
  * @logContext()
- * class UserService {
- *   createUser() {
- *     // When this executes, executionContextMap has:
- *     // { className: 'UserService', methodName: 'createUser' }
+ * class UserService implements WithLogger {
+ *   // this.logger is automatically available!
+ *   async createUser() {
+ *     this.logger.info('Creating user');
+ *     // [UserService][createUser] Creating user
  *   }
  * }
- * ```
  */
-export function logContext(opts: { fileName?: string }) {
+export function logContext(opts?: { fileName?: string; autoInject?: boolean }) {
   return function <T extends { new (...args: any[]): {} }>(constructor: T) {
     const className = constructor.name;
     const fileName = opts?.fileName;
+    const autoInject = opts?.autoInject ?? true;
 
+    // ────────────────────────────────────────────────────────────
+    // STEP 1: Wrap all methods to capture execution context
+    // ────────────────────────────────────────────────────────────
     const propertyNames = Object.getOwnPropertyNames(constructor.prototype);
 
     propertyNames.forEach(propertyName => {
+      // Skip constructor
       if (propertyName === 'constructor') {
+        return;
+      }
+
+      // Skip logger property if auto-injecting (we'll define it separately)
+      if (autoInject && propertyName === 'logger') {
         return;
       }
 
@@ -58,94 +60,51 @@ export function logContext(opts: { fileName?: string }) {
 
       const originalMethod = descriptor.value;
 
-      // When a method being invoked
+      // Wrap method to run within execution context
       descriptor.value = function (this: any, ...args: any[]) {
-        const previousContext = executionContextMap.get(this);
-
-        executionContextMap.set(this, {
+        // Store context in AsyncLocalStorage
+        const context: IExecutionContext = {
           className,
           methodName: propertyName,
           fileName,
-        });
+        };
 
-        try {
-          // execute original method
+        // Run original method within this context
+        // - Stores context in AsyncLocalStorage for this async execution
+        // - Context is available anywhere in the call stack
+        // - Automatically cleaned up when method completes
+        return runWithExecutionContext(context, () => {
           return originalMethod.apply(this, args);
-        } finally {
-          // Restore previous context in case of chain execution
-          if (previousContext) {
-            executionContextMap.set(this, previousContext);
-          } else {
-            executionContextMap.delete(this);
-          }
-        }
+        });
       };
 
+      // Apply wrapped method back to prototype
       Object.defineProperty(constructor.prototype, propertyName, descriptor);
     });
 
+    // ────────────────────────────────────────────────────────────
+    // STEP 2: Auto-inject logger property (if enabled)
+    // ────────────────────────────────────────────────────────────
+    if (autoInject) {
+      // Check if logger property already exists (e.g., from parent class)
+      const hasLogger = 'logger' in constructor.prototype;
+
+      if (!hasLogger) {
+        // Define logger as a getter that returns context-aware logger
+        // - Logger is created on-demand (lazy)
+        // - Always returns logger with current execution context
+        // - No need to cache logger per instance
+        Object.defineProperty(constructor.prototype, 'logger', {
+          get() {
+            // Each access returns a logger with current execution context
+            return getContextAwareLogger();
+          },
+          configurable: true,
+          enumerable: false, // Don't show in Object.keys()
+        });
+      }
+    }
+
     return constructor;
-  };
-}
-
-// --------------------------------------------------------------------------
-/**
- * Retrieves the current execution context for a class instance.
- *
- * CALLED BY:
- * - Logger._getCallerInfo() on every log call
- *
- * @param instance - The class instance (this)
- * @returns Context object or null
- */
-export function getlogContext(instance?: any): IExecutionContext | null {
-  if (!instance) {
-    return null;
-  }
-
-  return executionContextMap.get(instance) ?? null;
-}
-
-// --------------------------------------------------------------------------
-/**
- * Checks if an instance has logging context without retrieving it.
- *
- * @param instance - The class instance
- * @returns true if context exists
- */
-export function haslogContext(instance?: any): boolean {
-  if (!instance) {
-    return false;
-  }
-
-  return executionContextMap.has(instance);
-}
-
-// --------------------------------------------------------------------------
-/**
- * Manually clears context for an instance.
- *
- * @param instance - The class instance
- */
-export function clearlogContext(instance: any): void {
-  executionContextMap.delete(instance);
-}
-
-// --------------------------------------------------------------------------
-export function getRequestContext(): IRequestContext | null {
-  const context = tryGetContext();
-
-  if (!context) {
-    return null;
-  }
-
-  const requestId = context.req.header(HTTP.Headers.REQUEST_TRACING_ID);
-  const route = context.req.path;
-  const method = context.req.method;
-
-  return {
-    requestId,
-    route,
-    method,
   };
 }

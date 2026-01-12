@@ -162,7 +162,6 @@ export interface IRequestContext {
   requestId?: string;
   route?: string;
   method?: string;
-  userId?: string;
 }
 
 // --------------------------------------------------------------------------------------------------------

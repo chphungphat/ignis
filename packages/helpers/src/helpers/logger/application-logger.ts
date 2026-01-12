@@ -18,9 +18,10 @@ export class Logger {
 
   // Pre-formatted prefix with brackets - computed once at construction
   private readonly _formattedPrefix: string;
-  private readonly _logger: winston.Logger;
 
-  private constructor(scope: string, logger: winston.Logger) {
+  protected readonly _logger: winston.Logger;
+
+  protected constructor(scope: string, logger: winston.Logger) {
     this._formattedPrefix = `[${scope}] `;
     this._logger = logger;
   }
