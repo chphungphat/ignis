@@ -5,6 +5,8 @@ import { withMermaid } from 'vitepress-plugin-mermaid';
 const config = defineConfig({
   base: '/ignis/',
   srcDir: '../wiki',
+  outDir: './.vitepress/dist',
+  srcExclude: ['**/template/**'],
   title: 'IGNIS',
   description: 'A TypeScript Server Infrastructure with Hono Framework',
   head: [['link', { rel: 'icon', href: '/ignis/logo.svg' }]],
@@ -55,6 +57,36 @@ const config = defineConfig({
           text: 'History',
           collapsed: false,
           items: [
+            {
+              text: '2026-02-16',
+              collapsed: true,
+              items: [
+                { text: 'Authorization System & Auth Refactor', link: '/changelogs/2026-02-16-authorization-system' },
+              ],
+            },
+            {
+              text: '2026-02-11',
+              collapsed: true,
+              items: [
+                { text: 'WebSocket Generic Type Parameters', link: '/changelogs/2026-02-11-websocket-generic-types' },
+                { text: 'WebSocket Encrypted Delivery', link: '/changelogs/2026-02-11-websocket-encrypted-delivery' },
+                { text: 'Crypto Algorithm Refactor & ECDH', link: '/changelogs/2026-02-11-crypto-refactor-ecdh' },
+              ],
+            },
+            {
+              text: '2026-02-10',
+              collapsed: true,
+              items: [
+                { text: 'WebSocket Heartbeat & Payload Limit', link: '/changelogs/2026-02-10-websocket-heartbeat-payload' },
+              ],
+            },
+            {
+              text: '2026-02-06',
+              collapsed: true,
+              items: [
+                { text: 'Socket.IO Integration Fix', link: '/changelogs/2026-02-06-socket-io-integration-fix' },
+              ],
+            },
             {
               text: '2026-01-11',
               collapsed: true,
@@ -294,7 +326,7 @@ const config = defineConfig({
         },
         {
           text: 'Configuration',
-          collapsed: true,
+          collapsed: false,
           items: [
             { text: 'Overview', link: '/references/configuration/' },
             { text: 'Environment Variables', link: '/references/configuration/environment-variables' },
@@ -302,33 +334,77 @@ const config = defineConfig({
         },
         {
           text: 'Components',
-          collapsed: true,
+          collapsed: false,
           items: [
             { text: 'Overview', link: '/references/components/' },
             {
               text: 'Authentication',
-              link: '/references/components/authentication',
+              collapsed: true,
+              items: [
+                { text: 'Setup & Configuration', link: '/references/components/authentication/' },
+                { text: 'Usage & Examples', link: '/references/components/authentication/usage' },
+                { text: 'API Reference', link: '/references/components/authentication/api' },
+                { text: 'Error Reference', link: '/references/components/authentication/errors' },
+              ],
             },
             {
-              text: 'Health Check',
-              link: '/references/components/health-check',
+              text: 'Authorization (Experimental)',
+              collapsed: true,
+              items: [
+                { text: 'Setup & Configuration', link: '/references/components/authorization/' },
+                { text: 'Usage & Examples', link: '/references/components/authorization/usage' },
+                { text: 'API Reference', link: '/references/components/authorization/api' },
+                { text: 'Error Reference', link: '/references/components/authorization/errors' },
+              ],
             },
+            { text: 'Health Check', link: '/references/components/health-check' },
             {
               text: 'Mail',
-              link: '/references/components/mail',
+              collapsed: true,
+              items: [
+                { text: 'Setup & Configuration', link: '/references/components/mail/' },
+                { text: 'Usage & Examples', link: '/references/components/mail/usage' },
+                { text: 'API Reference', link: '/references/components/mail/api' },
+                { text: 'Error Reference', link: '/references/components/mail/errors' },
+              ],
+            },
+            { text: 'Request Tracker', link: '/references/components/request-tracker' },
+            {
+              text: 'Socket.IO',
+              collapsed: true,
+              items: [
+                { text: 'Setup & Configuration', link: '/references/components/socket-io/' },
+                { text: 'Usage & Examples', link: '/references/components/socket-io/usage' },
+                { text: 'API Reference', link: '/references/components/socket-io/api' },
+                { text: 'Error Reference', link: '/references/components/socket-io/errors' },
+              ],
             },
             {
-              text: 'Request Tracker',
-              link: '/references/components/request-tracker',
+              text: 'Static Asset',
+              collapsed: true,
+              items: [
+                { text: 'Setup & Configuration', link: '/references/components/static-asset/' },
+                { text: 'Usage & Examples', link: '/references/components/static-asset/usage' },
+                { text: 'API Reference', link: '/references/components/static-asset/api' },
+                { text: 'Error Reference', link: '/references/components/static-asset/errors' },
+              ],
             },
-            { text: 'Socket.IO', link: '/references/components/socket-io' },
-            { text: 'Static Asset', link: '/references/components/static-asset' },
             { text: 'Swagger', link: '/references/components/swagger' },
+            {
+              text: 'WebSocket',
+              collapsed: true,
+              items: [
+                { text: 'Setup & Configuration', link: '/references/components/websocket/' },
+                { text: 'Usage & Examples', link: '/references/components/websocket/usage' },
+                { text: 'API Reference', link: '/references/components/websocket/api' },
+                { text: 'Error Reference', link: '/references/components/websocket/errors' },
+              ],
+            },
           ],
         },
         {
           text: 'Base Abstractions',
-          collapsed: true,
+          collapsed: false,
           items: [
             { text: 'Overview', link: '/references/base/' },
             { text: 'Application', link: '/references/base/application' },
@@ -342,7 +418,7 @@ const config = defineConfig({
             { text: 'DataSources', link: '/references/base/datasources' },
             {
               text: 'Repositories',
-              collapsed: true,
+              collapsed: false,
               items: [
                 { text: 'Overview', link: '/references/base/repositories/' },
                 { text: 'Mixins', link: '/references/base/repositories/mixins' },
@@ -352,7 +428,7 @@ const config = defineConfig({
             },
             {
               text: 'Filter System',
-              collapsed: true,
+              collapsed: false,
               items: [
                 { text: 'Overview', link: '/references/base/filter-system/' },
                 { text: '⚡ Quick Reference', link: '/references/base/filter-system/quick-reference' },
@@ -376,32 +452,59 @@ const config = defineConfig({
         },
         {
           text: 'Helpers',
-          collapsed: true,
+          collapsed: false,
           items: [
             { text: 'Overview', link: '/references/helpers/' },
-            { text: 'Cron', link: '/references/helpers/cron' },
-            { text: 'Crypto', link: '/references/helpers/crypto' },
-            { text: 'Environment', link: '/references/helpers/env' },
-            { text: 'Error', link: '/references/helpers/error' },
-            { text: 'Inversion (DI)', link: '/references/helpers/inversion' },
-            { text: 'Logger', link: '/references/helpers/logger' },
-            { text: 'Network', link: '/references/helpers/network' },
-            { text: 'Queue', link: '/references/helpers/queue' },
-            { text: 'Redis', link: '/references/helpers/redis' },
-            { text: 'Socket.IO', link: '/references/helpers/socket-io' },
-            { text: 'Storage', link: '/references/helpers/storage' },
-            { text: 'Testing', link: '/references/helpers/testing' },
-            { text: 'Types', link: '/references/helpers/types' },
-            { text: 'UID', link: '/references/helpers/uid' },
+            { text: 'Cron', link: '/references/helpers/cron/' },
+            { text: 'Crypto', link: '/references/helpers/crypto/' },
+            { text: 'Environment', link: '/references/helpers/env/' },
+            { text: 'Error', link: '/references/helpers/error/' },
+            { text: 'Inversion (DI)', link: '/references/helpers/inversion/' },
+            { text: 'Logger', link: '/references/helpers/logger/' },
             {
-              text: 'Worker Thread',
-              link: '/references/helpers/worker-thread',
+              text: 'Network',
+              collapsed: true,
+              items: [
+                { text: 'Setup & Usage', link: '/references/helpers/network/' },
+                { text: 'API Reference', link: '/references/helpers/network/api' },
+              ],
             },
+            { text: 'Kafka (Experimental)', link: '/references/helpers/kafka/' },
+            { text: 'Queue', link: '/references/helpers/queue/' },
+            { text: 'Redis', link: '/references/helpers/redis/' },
+            {
+              text: 'Socket.IO',
+              collapsed: true,
+              items: [
+                { text: 'Setup & Usage', link: '/references/helpers/socket-io/' },
+                { text: 'API Reference', link: '/references/helpers/socket-io/api' },
+              ],
+            },
+            {
+              text: 'Storage',
+              collapsed: true,
+              items: [
+                { text: 'Setup & Usage', link: '/references/helpers/storage/' },
+                { text: 'API Reference', link: '/references/helpers/storage/api' },
+              ],
+            },
+            { text: 'Testing', link: '/references/helpers/testing/' },
+            { text: 'Types', link: '/references/helpers/types/' },
+            { text: 'UID', link: '/references/helpers/uid/' },
+            {
+              text: 'WebSocket',
+              collapsed: true,
+              items: [
+                { text: 'Setup & Usage', link: '/references/helpers/websocket/' },
+                { text: 'API Reference', link: '/references/helpers/websocket/api' },
+              ],
+            },
+            { text: 'Worker Thread', link: '/references/helpers/worker-thread/' },
           ],
         },
         {
           text: 'Utilities',
-          collapsed: true,
+          collapsed: false,
           items: [
             { text: 'Overview', link: '/references/utilities/' },
             { text: 'Crypto', link: '/references/utilities/crypto' },
@@ -418,15 +521,8 @@ const config = defineConfig({
         },
         {
           text: 'Framework Internals',
-          collapsed: true,
+          collapsed: false,
           items: [
-            { text: 'Overview', link: '/references/src-details/' },
-            { text: 'Core (@vez/ignis)', link: '/references/src-details/core' },
-            { text: 'Boot (@vez/ignis-boot)', link: '/references/src-details/boot' },
-            { text: 'Helpers (@vez/ignis-helpers)', link: '/references/src-details/helpers' },
-            { text: 'Inversion (@vez/ignis-inversion)', link: '/references/src-details/inversion' },
-            { text: 'Dev Configs (@vez/dev-configs)', link: '/references/src-details/dev-configs' },
-            { text: 'Documentation (@vez/ignis-docs)', link: '/references/src-details/docs' },
             { text: 'MCP Docs Server', link: '/references/src-details/mcp-server' },
           ],
         },

@@ -31,7 +31,7 @@ import isEmpty from 'lodash/isEmpty';
 import { BaseComponent } from '../components';
 import { BaseController } from '../controllers';
 import { IDataSource } from '../datasources';
-import { appErrorHandler, emojiFavicon, notFoundHandler, requestNormalize } from '../middlewares';
+import { appErrorHandler, emojiFavicon, notFoundHandler } from '../middlewares';
 import { TMixinOpts } from '../mixins';
 import { TTableSchemaWithId } from '../models/common';
 import { IRepository } from '../repositories';
@@ -375,26 +375,25 @@ export abstract class BaseApplication
       task: () => {
         const server = this.getServer();
 
-        if (this.configs.asyncContext?.enable) {
-          server.use(contextStorage());
-        }
-
-        // Assign requestId for every single request from client
-        this.component(RequestTrackerComponent);
-
-        // NOTE: Bug from Bun + Hono, this middleware aims to parse needed body for continue handling request
-        // Refer: https://github.com/honojs/middleware/issues/81
-        server.use(requestNormalize());
-
-        server.use(emojiFavicon({ icon: this.configs.favicon ?? '🔥' }));
-        server.notFound(notFoundHandler({ logger: this.logger }));
-
         server.onError(
           appErrorHandler({
             logger: this.logger,
             rootKey: this.configs.error?.rootKey ?? undefined,
           }),
         );
+
+        if (this.configs.asyncContext?.enable) {
+          server.use(contextStorage());
+        }
+
+        server.notFound(notFoundHandler({ logger: this.logger }));
+
+        // Assign requestId for every single request from client
+        // NOTE: RequestTrackerComponent includes RequestSpyMiddleware which parses request body
+        // This also works around Bun + Hono body parsing bug: https://github.com/honojs/middleware/issues/81
+        this.component(RequestTrackerComponent);
+
+        server.use(emojiFavicon({ icon: this.configs.favicon ?? '🔥' }));
       },
     });
   }

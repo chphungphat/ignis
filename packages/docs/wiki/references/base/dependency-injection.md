@@ -189,7 +189,7 @@ class UserController {
 - **Extensible**: Custom booters integrate seamlessly via tags
 - **Type-safe**: Full TypeScript support throughout boot process
 
-> **Learn More:** See [Bootstrapping Concepts](/guides/core-concepts/application/bootstrapping) and [Boot Package Reference](/references/src-details/boot.md)
+> **Learn More:** See [Bootstrapping Concepts](/guides/core-concepts/application/bootstrapping)
 
 ## See Also
 
@@ -201,7 +201,7 @@ class UserController {
   - [Providers](/references/base/providers) - Factory pattern for dynamic injection
 
 - **References:**
-  - [Inversion Helper](/references/helpers/inversion) - DI container utilities
+  - [Inversion Helper](/references/helpers/inversion/) - DI container utilities
   - [Bootstrapping API](/references/base/bootstrapping) - Auto-discovery and DI
   - [Glossary](/guides/reference/glossary#dependency-injection-di) - DI concepts explained
 

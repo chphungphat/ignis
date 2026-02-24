@@ -773,15 +773,12 @@ await app.boot();
 ```
 
 
----
-
 ## See Also
 
 - **Related References:**
   - [Application](./application.md) - Application lifecycle and initialization
   - [Dependency Injection](./dependency-injection.md) - DI container and bindings
   - [Components](./components.md) - Pluggable modules and components
-  - [Boot Package](/references/src-details/boot.md) - Boot package implementation details
 
 - **Guides:**
   - [Bootstrapping Concepts](/guides/core-concepts/application/bootstrapping)

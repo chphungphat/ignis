@@ -119,7 +119,6 @@ class User extends BaseEntity {
 - `static tableName` - Database table name
 - `static schema` - Drizzle schema definition
 
----
 
 ## Route Decorators
 
@@ -170,7 +169,6 @@ class UserController extends BaseController {
 }
 ```
 
----
 
 ## Filter Operators
 
@@ -239,7 +237,6 @@ class UserController extends BaseController {
 |----------|-------------|---------|
 | `jsonPath` | Query JSON field | `{ metadata: { jsonPath: '$.user.name', eq: 'John' } }` |
 
----
 
 ## Common Filters
 
@@ -292,7 +289,6 @@ const users = await userRepo.find({
 });
 ```
 
----
 
 ## Dependency Injection
 
@@ -329,7 +325,6 @@ class UserController extends BaseController {
 const userService = app.get<UserService>('services.UserService');
 ```
 
----
 
 ## Common Imports
 
@@ -385,13 +380,6 @@ import {
 
   // Queues
   QueueHelper,
-  BullMQHelper,
-
-  // Cron
-  CronHelper,
-
-  // Storage
-  MinIOHelper,
 
   // Crypto
   hash,
@@ -400,6 +388,9 @@ import {
   // HTTP
   HTTP,
 } from '@venizia/ignis-helpers';
+import { BullMQHelper } from '@venizia/ignis-helpers/bullmq';
+import { CronHelper } from '@venizia/ignis-helpers/cron';
+import { MinIOHelper } from '@venizia/ignis-helpers/minio';
 ```
 
 ### Dependency Injection
@@ -412,7 +403,6 @@ import {
 } from '@venizia/ignis-inversion';
 ```
 
----
 
 ## OpenAPI/Swagger
 
@@ -458,7 +448,6 @@ async getDashboard() {
 }
 ```
 
----
 
 ## Status Codes
 
@@ -499,13 +488,14 @@ if (Statuses.isCompleted(order.status)) {
 | `RUNNING` | `'202_RUNNING'` | Active |
 | `COMPLETED` | `'303_COMPLETED'` | Completed |
 | `SUCCESS` | `'302_SUCCESS'` | Completed |
+| `CONFIRMED` | `'305_CONFIRMED'` | Completed |
 | `SUSPENDED` | `'402_SUSPENDED'` | Inactive |
 | `ARCHIVED` | `'405_ARCHIVED'` | Inactive |
+| `REFUNDED` | `'408_REFUNDED'` | Inactive |
 | `FAIL` | `'500_FAIL'` | Failed |
 | `CANCELLED` | `'505_CANCELLED'` | Failed |
 | `DELETED` | `'506_DELETED'` | Failed |
 
----
 
 ## Middlewares
 
@@ -515,17 +505,13 @@ if (Statuses.isCompleted(order.status)) {
 import {
   appErrorHandler,
   notFoundHandler,
-  requestNormalize,
   RequestSpyMiddleware,
   emojiFavicon,
 } from '@venizia/ignis';
 
 const app = new MyApp();
 
-// Request normalization
-app.use(requestNormalize());
-
-// Request logging
+// Request logging and body parsing
 const requestSpy = new RequestSpyMiddleware();
 app.use(requestSpy.value());
 
@@ -539,7 +525,6 @@ app.onError(appErrorHandler({ logger: app.logger }));
 app.notFound(notFoundHandler({ logger: app.logger }));
 ```
 
----
 
 ## Environment Variables
 
@@ -561,7 +546,6 @@ const port = EnvHelper.get('PORT', '3000');
 const apiKey = EnvHelper.getRequired('API_KEY');
 ```
 
----
 
 ## Common Patterns
 
@@ -615,7 +599,6 @@ class UserRepository extends DefaultCRUDRepository<User> {
 }
 ```
 
----
 
 ## See Also
 

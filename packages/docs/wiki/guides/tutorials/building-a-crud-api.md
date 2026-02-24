@@ -2,13 +2,13 @@
 
 Build a complete, database-backed REST API for managing todos. This guide covers Models, DataSources, Repositories, and Controllers - the core building blocks of Ignis applications.
 
-**⏱️ Time to Complete:** ~45 minutes
+**Time to Complete:** ~45 minutes
 
 ## Prerequisites
 
-- ✅ Completed [Complete Installation](./complete-installation.md)
-- ✅ PostgreSQL installed and running
-- ✅ Database created (see [Prerequisites](../get-started/setup.md))
+- Completed [Complete Installation](./complete-installation.md)
+- PostgreSQL installed and running
+- Database created (see [Prerequisites](../get-started/setup.md))
 
 ## What You'll Build
 
@@ -530,11 +530,11 @@ curl -X DELETE http://localhost:3000/api/todos/{id}
 **View API Documentation:**
 Open `http://localhost:3000/doc/explorer` to see interactive Swagger UI.
 
-🎉 **Congratulations!** You've built a complete CRUD API with:
-- ✅ Type-safe database operations
-- ✅ Automatic request validation
-- ✅ Auto-generated OpenAPI documentation
-- ✅ Clean, maintainable architecture
+**Congratulations!** You've built a complete CRUD API with:
+- Type-safe database operations
+- Automatic request validation
+- Auto-generated OpenAPI documentation
+- Clean, maintainable architecture
 
 ## What Could Go Wrong? Common Errors
 
@@ -694,7 +694,7 @@ You now have a fully functional CRUD API! Here's what to explore next:
 3. [Components](../core-concepts/components.md) - Build reusable modules
 
 **Add Features:**
-1. [Authentication](/references/components/authentication) - Add JWT authentication
+1. [Authentication](/references/components/authentication/) - Add JWT authentication
 2. [Custom Routes](/best-practices/api-usage-examples.md) - Beyond CRUD operations
 3. [Relationships](../core-concepts/persistent/) - Link todos to users
 

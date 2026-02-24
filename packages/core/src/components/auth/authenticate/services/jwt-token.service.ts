@@ -1,16 +1,16 @@
-import { TContext } from '@/base/controllers';
-import { inject } from '@/base/metadata';
-import { BaseService } from '@/base/services';
+import { TContext } from '@/base/controllers/common/types';
+import { inject } from '@/base/metadata/injectors';
+import { BaseService } from '@/base/services/base';
 import { AES, getError, HTTP, int } from '@venizia/ignis-helpers';
 import { Env } from 'hono';
 import { JWTPayload, jwtVerify, JWTVerifyResult, SignJWT } from 'jose';
-import { Authentication } from '../common/constants';
 import {
+  Authentication,
   AuthenticateBindingKeys,
   IJWTTokenPayload,
   IJWTTokenServiceOptions,
   TGetTokenExpiresFn,
-} from './../common';
+} from '../common';
 
 export class JWTTokenService<E extends Env = Env> extends BaseService {
   static readonly JWT_COMMON_FIELDS = new Set<keyof JWTPayload>([
@@ -114,22 +114,28 @@ export class JWTTokenService<E extends Env = Env> extends BaseService {
         continue;
       }
 
-      const encryptedKey = this.aes.encrypt(key, this.options.applicationSecret);
+      const encryptedKey = this.aes.encrypt({
+        message: key,
+        secret: this.options.applicationSecret,
+      });
       switch (key) {
         case 'roles': {
-          rs[encryptedKey] = this.aes.encrypt(
-            JSON.stringify(
+          rs[encryptedKey] = this.aes.encrypt({
+            message: JSON.stringify(
               value.map(
                 (el: IJWTTokenPayload['roles'][number]) =>
                   `${el.id}|${el.identifier}|${el.priority}`,
               ),
             ),
-            this.options.applicationSecret,
-          );
+            secret: this.options.applicationSecret,
+          });
           break;
         }
         default: {
-          rs[encryptedKey] = this.aes.encrypt(`${value}`, this.options.applicationSecret);
+          rs[encryptedKey] = this.aes.encrypt({
+            message: `${value}`,
+            secret: this.options.applicationSecret,
+          });
           break;
         }
       }
@@ -152,8 +158,14 @@ export class JWTTokenService<E extends Env = Env> extends BaseService {
         continue;
       }
 
-      const decryptedKey = this.aes.decrypt(key, this.options.applicationSecret);
-      const decryptedValue = this.aes.decrypt(payload[key], this.options.applicationSecret);
+      const decryptedKey = this.aes.decrypt({
+        message: key,
+        secret: this.options.applicationSecret,
+      });
+      const decryptedValue = this.aes.decrypt({
+        message: payload[key],
+        secret: this.options.applicationSecret,
+      });
 
       switch (decryptedKey) {
         case 'roles': {

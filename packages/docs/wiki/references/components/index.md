@@ -6,13 +6,15 @@ Reusable, pluggable modules that group together related features. A component ca
 
 | Component | Purpose | Key Features |
 |-----------|---------|--------------|
-| [Authentication](./authentication.md) | JWT-based auth | Token generation, protected routes, user payload |
-| [Health Check](./health-check.md) | Monitoring endpoint | `/health` endpoint, ping/pong functionality |
-| [Mail](./mail.md) | Email sending system | Multiple transports, templating, queue-based processing |
-| [Request Tracker](./request-tracker.md) | Request logging | Request ID generation, timing, structured logging |
-| [Socket.IO](./socket-io.md) | Real-time communication | WebSocket support, Redis adapter, event-based |
-| [Static Asset](./static-asset.md) | File management | Upload/download files, MinIO & local filesystem support |
-| [Swagger](./swagger.md) | API documentation | OpenAPI generation, Swagger UI, Scalar UI |
+| [Authentication](./authentication/) | JWT/Basic auth | Token generation, protected routes, multi-strategy |
+| [Authorization](./authorization/) <Badge type="warning" text="Experimental" /> | Enforcer-based authz | RBAC, ABAC, voters, Casbin integration, role shortcuts |
+| [Health Check](./health-check) | Monitoring endpoint | `/health` endpoint, ping/pong functionality |
+| [Mail](./mail/) | Email sending system | Multiple transports, templating, queue-based processing |
+| [Request Tracker](./request-tracker) | Request logging | Request ID generation, timing, structured logging |
+| [Socket.IO](./socket-io/) | Real-time communication | WebSocket support, Redis adapter, event-based |
+| [WebSocket](./websocket/) | Real-time communication | Bun native WebSocket, Redis Pub/Sub, heartbeat |
+| [Static Asset](./static-asset/) | File management | Upload/download files, MinIO & local filesystem support |
+| [Swagger](./swagger) | API documentation | OpenAPI generation, Swagger UI, Scalar UI |
 
 ## Creating a Component
 
@@ -70,13 +72,15 @@ Using components is a great way to organize your application's features into mod
   - [Creating Components](/guides/core-concepts/components-guide) - Build your own components
 
 - **Built-in Components:**
-  - [Authentication](./authentication) - JWT authentication
+  - [Authentication](./authentication/) - JWT/Basic authentication
+  - [Authorization](./authorization/) - Enforcer-based authorization
   - [Health Check](./health-check) - Health check endpoints
-  - [Swagger](./swagger) - API documentation
-  - [Socket.IO](./socket-io) - WebSocket support
-  - [Mail](./mail) - Email functionality
+  - [Mail](./mail/) - Email functionality
   - [Request Tracker](./request-tracker) - Request tracking
-  - [Static Asset](./static-asset) - Static file serving
+  - [Socket.IO](./socket-io/) - Socket.IO WebSocket support
+  - [WebSocket](./websocket/) - Bun native WebSocket
+  - [Static Asset](./static-asset/) - Static file serving
+  - [Swagger](./swagger) - API documentation
 
 - **References:**
   - [BaseComponent API](/references/base/components) - Component base class

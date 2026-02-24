@@ -18,7 +18,6 @@ Pick which AI assistant you're using:
 | Tool                                  | Best For                                 |
 | ------------------------------------- | ---------------------------------------- |
 | [Claude Code](#claude-code-cli-setup) | Terminal users, developers (Recommended) |
-| [Gemini CLI](#gemini-cli-setup)       | Google AI users                          |
 | [VS Code](#vs-code-setup)             | VS Code with MCP extensions              |
 | [Cursor](#cursor-setup)               | AI-first code editor                     |
 | [Windsurf](#windsurf-setup)           | Codeium's AI editor                      |
@@ -243,139 +242,6 @@ Once working, try these queries:
 # Get code examples
 "Show me an example of dependency injection in Ignis"
 ```
-
-## Gemini CLI Setup
-
-> **Important:** As of December 2024, Google's official Gemini CLI has limited MCP support. This setup is **experimental** and may require custom configuration.
-
-### Prerequisites
-
-1. **Install Google AI CLI tools:**
-
-   ```bash
-   # Option 1: Using pip (Python)
-   pip install google-generativeai
-
-   # Option 2: Using Node.js wrapper
-   npm install -g @google/generative-ai
-   ```
-
-2. **Get your API key:**
-   - Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
-   - Create a new API key
-   - Save it securely
-
-### Setup Steps
-
-#### 1. Configure environment
-
-```bash
-# Set your API key
-export GOOGLE_API_KEY="your-api-key-here"
-
-# Or add to your shell config (~/.bashrc, ~/.zshrc):
-echo 'export GOOGLE_API_KEY="your-api-key-here"' >> ~/.bashrc
-source ~/.bashrc
-```
-
-#### 2. Create MCP config directory
-
-```bash
-# Create config directory
-mkdir -p ~/.config/gemini
-
-# The config file location:
-# macOS/Linux: ~/.config/gemini/mcp_servers.json
-# Windows: %USERPROFILE%\.config\gemini\mcp_servers.json
-```
-
-#### 3. Add MCP Server Configuration
-
-Create `~/.config/gemini/mcp_servers.json`:
-
-**Recommended: Using npx**
-
-```json
-{
-  "mcpServers": {
-    "ignis-docs": {
-      "command": "npx",
-      "args": ["-y", "@venizia/ignis-docs"],
-      "env": {}
-    }
-  }
-}
-```
-
-**Alternative: Global install**
-
-```bash
-# First install globally
-npm install -g @venizia/ignis-docs
-```
-
-Then configure:
-
-```json
-{
-  "mcpServers": {
-    "ignis-docs": {
-      "command": "ignis-docs-mcp",
-      "env": {}
-    }
-  }
-}
-```
-
-#### 4. Test manually first
-
-Before integrating with Gemini, test the MCP server works:
-
-```bash
-# Test the MCP server can start
-npx @venizia/ignis-docs
-
-# Expected output:
-# "MCP Server listening on stdio..."
-# (Press Ctrl+C to stop)
-```
-
-#### 5. Use with Gemini (if supported)
-
-**⚠️ Note:** MCP support in Gemini CLI is limited. Alternative approaches:
-
-**Option A: Use Google AI Python SDK with custom MCP wrapper**
-
-```python
-# This requires writing custom integration code
-# See: https://github.com/modelcontextprotocol/python-sdk
-```
-
-**Option B: Use via Claude Code CLI instead**
-
-- Gemini CLI MCP support is experimental
-- Claude Code has better MCP support out of the box
-- Recommendation: Use [Claude Code CLI setup](#claude-code-cli-setup) for Ignis docs
-
-#### Troubleshooting
-
-**❌ "Command not found: gemini"**
-
-- Google doesn't have an official "gemini" CLI command
-- Use `gcloud ai` or Python SDK instead
-- Consider using Claude Code CLI for better MCP support
-
-**❌ MCP server not loading**
-
-- Gemini CLI MCP support is experimental
-- Check if your Gemini CLI version supports MCP:
-  ```bash
-  gemini --version
-  gemini mcp list  # If this command doesn't exist, MCP isn't supported
-  ```
-
-**✅ Recommended Alternative:**
-Use Claude Code CLI (see setup above) - it has full MCP support and works reliably.
 
 ## VS Code Setup
 
@@ -655,7 +521,7 @@ Use absolute paths in your config:
 
 Before troubleshooting, run these quick tests:
 
-**✅ Test 1: MCP server runs**
+**Test 1: MCP server runs**
 
 ```bash
 npx @venizia/ignis-docs
@@ -663,14 +529,14 @@ npx @venizia/ignis-docs
 # Press Ctrl+C to stop
 ```
 
-**✅ Test 2: Config file exists and is valid JSON**
+**Test 2: Config file exists and is valid JSON**
 
 ```bash
 # Claude Code:
 cat ~/.config/claude-code/config.json | python -m json.tool
 ```
 
-**✅ Test 3: AI tool recognizes MCP server**
+**Test 3: AI tool recognizes MCP server**
 
 - Restart your AI tool COMPLETELY (quit and reopen)
 - Ask: `Can you search the Ignis docs for "controller"?`
@@ -679,7 +545,7 @@ cat ~/.config/claude-code/config.json | python -m json.tool
 
 ### Common Issues and Solutions
 
-#### ❌ Issue #1: "Command not found: ignis-docs-mcp"
+#### Issue #1: "Command not found: ignis-docs-mcp"
 
 **When it happens:** Starting AI tool or running `ignis-docs-mcp` manually
 
@@ -723,7 +589,7 @@ cat ~/.config/claude-code/config.json | python -m json.tool
    ```
 
 
-#### ❌ Issue #2: AI assistant doesn't use MCP tools
+#### Issue #2: AI assistant doesn't use MCP tools
 
 **When it happens:** AI responds normally but never uses `searchDocs` or other tools
 
@@ -781,7 +647,7 @@ cat ~/.config/claude-code/config.json | python -m json.tool
    ```
 
 
-#### ❌ Issue #3: "Module not found" errors
+#### Issue #3: "Module not found" errors
 
 **When it happens:** MCP server starts but crashes immediately
 
@@ -814,7 +680,7 @@ cat ~/.config/claude-code/config.json | python -m json.tool
    ```
 
 
-#### ❌ Issue #4: First search takes 10+ seconds
+#### Issue #4: First search takes 10+ seconds
 
 **When it happens:** First query is slow, subsequent queries are fast
 
@@ -826,7 +692,7 @@ cat ~/.config/claude-code/config.json | python -m json.tool
 **Not an error - just one-time startup cost.**
 
 
-#### ❌ Issue #5: Config file doesn't exist
+#### Issue #5: Config file doesn't exist
 
 **When it happens:** `cat ~/.config/claude-code/config.json` says "No such file"
 
@@ -848,7 +714,7 @@ EOF
 ```
 
 
-### 🐛 Advanced Troubleshooting
+### Advanced Troubleshooting
 
 If none of the above worked:
 

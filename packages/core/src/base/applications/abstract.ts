@@ -7,7 +7,6 @@ import {
   int,
   RuntimeModules,
   toBoolean,
-  TRuntimeModule,
   ValueOrPromise,
 } from '@venizia/ignis-helpers';
 import { Env, Schema } from 'hono';
@@ -47,6 +46,8 @@ export abstract class AbstractApplication<
   protected configs: IApplicationConfigs;
   protected projectRoot: string;
 
+  private postStartHooks: Array<{ identifier: string; hook: () => ValueOrPromise<void> }> = [];
+
   // ------------------------------------------------------------------------------
   constructor(opts: { scope: string; config: IApplicationConfigs }) {
     const { scope, config } = opts;
@@ -70,7 +71,7 @@ export abstract class AbstractApplication<
 
     this.server = {
       hono: honoServer,
-      runtime: this.detectRuntimeModule(),
+      runtime: RuntimeModules.detect(),
     };
   }
 
@@ -118,8 +119,37 @@ export abstract class AbstractApplication<
     return this.server.hono;
   }
 
-  getServerInstance() {
-    return this.server.instance;
+  getServerInstance<
+    T extends TBunServerInstance | TNodeServerInstance = TBunServerInstance | TNodeServerInstance,
+  >(): T | undefined {
+    return this.server.instance as T | undefined;
+  }
+
+  // ------------------------------------------------------------------------------
+  registerPostStartHook(opts: { identifier: string; hook: () => ValueOrPromise<void> }) {
+    this.postStartHooks.push(opts);
+    this.logger
+      .for(this.registerPostStartHook.name)
+      .debug('Registered post-start hook | identifier: %s', opts.identifier);
+  }
+
+  protected async executePostStartHooks() {
+    if (this.postStartHooks.length === 0) {
+      return;
+    }
+
+    const logger = this.logger.for(this.executePostStartHooks.name);
+    logger.info('Executing %s post-start hook(s)...', this.postStartHooks.length);
+
+    for (const { identifier, hook } of this.postStartHooks) {
+      const t = performance.now();
+      await hook();
+      logger.info(
+        'Executed hook | identifier: %s | took: %s (ms)',
+        identifier,
+        performance.now() - t,
+      );
+    }
   }
 
   // ------------------------------------------------------------------------------
@@ -133,14 +163,6 @@ export abstract class AbstractApplication<
     this.bind<typeof this.rootRouter>({
       key: CoreBindings.APPLICATION_ROOT_ROUTER,
     }).toProvider(_ => this.rootRouter);
-  }
-
-  protected detectRuntimeModule(): TRuntimeModule {
-    if (typeof Bun !== 'undefined') {
-      return RuntimeModules.BUN;
-    }
-
-    return RuntimeModules.NODE;
   }
 
   protected inspectRoutes() {
@@ -302,6 +324,8 @@ export abstract class AbstractApplication<
         });
       }
     }
+
+    await this.executePostStartHooks();
   }
 
   stop() {

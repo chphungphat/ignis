@@ -30,7 +30,6 @@ import {
   int,
   BasicAuthenticationStrategy,
   JWTAuthenticationStrategy,
-  MinioHelper,
   StaticAssetComponent,
   StaticAssetComponentBindingKeys,
   StaticAssetStorageTypes,
@@ -41,12 +40,13 @@ import {
   IJWTTokenServiceOptions,
   IBasicTokenServiceOptions,
 } from '@venizia/ignis';
+import { MinioHelper } from '@venizia/ignis-helpers/minio';
 import isEmpty from 'lodash/isEmpty';
 import path from 'node:path';
 import packageJson from './../package.json';
 import { EnvironmentKeys } from './common/environments';
 import { MetaLinkRepository } from './repositories/meta-link.repository';
-import { AuthenticationService, RepositoryTestService } from './services';
+import { AuthenticationService } from './services';
 import { TestController } from './controllers';
 
 // -----------------------------------------------------------------------------------------------
@@ -290,12 +290,12 @@ export class Application extends BaseApplication {
     );
 
     // Run all tests using the test service (repositories are injected via DI)
-    const testService = this.get<RepositoryTestService>({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.SERVICE,
-        key: RepositoryTestService.name,
-      }),
-    });
-    await testService.runAllTests();
+    // const testService = this.get<RepositoryTestService>({
+    //   key: BindingKeys.build({
+    //     namespace: BindingNamespaces.SERVICE,
+    //     key: RepositoryTestService.name,
+    //   }),
+    // });
+    // await testService.runAllTests();
   }
 }
