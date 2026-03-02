@@ -1,4 +1,5 @@
-import { BindingKeys, BindingNamespaces, getUID, inject } from '@venizia/ignis';
+import { BindingKeys, BindingNamespaces, inject } from '@venizia/ignis';
+import { getUID } from '@venizia/ignis-helpers';
 import {
   ConfigurationRepository,
   ProductRepository,
@@ -903,8 +904,8 @@ export class ArrayOperatorTestService extends BaseTestService {
       });
 
       const nullProductInResults = resultsWithExistingTag.find(r => r.name === 'Null Tags Product');
-      const productsWithElectronics = resultsWithExistingTag.filter(
-        r => r.tags && r.tags.includes('electronics'),
+      const productsWithElectronics = resultsWithExistingTag.filter(r =>
+        r.tags?.includes('electronics'),
       );
 
       // Verify: products with 'electronics' should be found, but null-tags product should NOT

@@ -64,7 +64,7 @@ async function rest<T>(method: string, path: string, body?: unknown): Promise<T>
 function waitForEvent<T = unknown>(socket: Socket, event: string, timeout = 5000): Promise<T> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
-      socket.off(event, handler);
+      socket.off(event, handler); // eslint-disable-line @typescript-eslint/no-use-before-define
       reject(new Error(`Timeout waiting for event: "${event}"`));
     }, timeout);
 
@@ -131,10 +131,7 @@ async function testGetClientsViaSocket(socket: Socket, expectedMin: number) {
 
   socket.emit('get-clients');
 
-  const response = await waitForEvent<{ count: number; clients: string[] }>(
-    socket,
-    'clients:list',
-  );
+  const response = await waitForEvent<{ count: number; clients: string[] }>(socket, 'clients:list');
 
   if (response.count >= expectedMin) {
     passed(`Got ${response.count} client(s): ${response.clients.join(', ')}`);
@@ -210,10 +207,7 @@ async function testGetClientRooms(clientId: string) {
   }
 }
 
-async function testSendToClient(opts: {
-  receiverSocket: Socket;
-  receiverId: string;
-}) {
+async function testSendToClient(opts: { receiverSocket: Socket; receiverId: string }) {
   header('Test: Send Message to Specific Client (REST)');
 
   const { receiverSocket, receiverId } = opts;
@@ -234,11 +228,7 @@ async function testSendToClient(opts: {
   }
 }
 
-async function testSendToRoom(
-  listenerSocket: Socket,
-  listenerName: string,
-  room: string,
-) {
+async function testSendToRoom(listenerSocket: Socket, listenerName: string, room: string) {
   header('Test: Send Message to Room (REST)');
 
   const topic = 'room:update';

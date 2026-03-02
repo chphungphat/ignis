@@ -1,1 +1,2 @@
-export { default } from '@venizia/dev-configs/.prettierrc.mjs';
+import { prettierConfigs } from "@venizia/dev-configs";
+export default prettierConfigs;

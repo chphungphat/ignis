@@ -12,6 +12,7 @@ export class User extends BaseEntity<TUserSchema> {
   static readonly TABLE_NAME = User.name;
 
   constructor() {
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
     super({ name: User.name, schema: usersTable });
   }
 }

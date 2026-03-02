@@ -32,12 +32,7 @@ export const JWTTokenPayloadSchema = z.object({
 });
 
 export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
-  const {
-    restPath = '/auth',
-    serviceKey = 'services.AuthenticationService',
-    requireAuthenticatedSignUp = false,
-    payload = {},
-  } = opts;
+  const { restPath = '/auth', serviceKey, requireAuthenticatedSignUp = false, payload = {} } = opts;
 
   @controller({ path: restPath })
   class AuthController extends BaseController {
@@ -73,7 +68,7 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
             }),
           },
           responses: jsonResponse({
-            schema: payload?.signIn?.request?.schema ?? AnyObjectSchema,
+            schema: payload?.signIn?.response?.schema ?? AnyObjectSchema,
             description: 'Success Response',
           }),
         },

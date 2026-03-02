@@ -58,6 +58,20 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-02-27',
+              collapsed: true,
+              items: [
+                { text: 'JWKS Authentication & Service Hierarchy Refactor', link: '/changelogs/2026-02-27-jwks-authentication' },
+              ],
+            },
+            {
+              text: '2026-02-26',
+              collapsed: true,
+              items: [
+                { text: 'Core/Helpers Decoupling', link: '/changelogs/2026-02-26-core-helpers-decoupling' },
+              ],
+            },
+            {
               text: '2026-02-16',
               collapsed: true,
               items: [
@@ -348,7 +362,7 @@ const config = defineConfig({
               ],
             },
             {
-              text: 'Authorization (Experimental)',
+              text: 'Authorization',
               collapsed: true,
               items: [
                 { text: 'Setup & Configuration', link: '/references/components/authorization/' },

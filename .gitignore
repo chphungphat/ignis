@@ -53,6 +53,11 @@ coverage/
 .env.*
 !**/.env.example
 
+# Cryptographic Keys
+*.pem
+*.key
+keys/
+
 # IDEs and Editors
 # Add settings and temporary files from common editors to prevent user-specific
 # configurations from being committed.
@@ -77,6 +82,10 @@ Desktop.ini
 .claude/
 **/*/.claude
 .prompts/
+
+.serena
+docs/plans
+docs/temp
 
 CLAUDE.md
 CLAUDE.*.md

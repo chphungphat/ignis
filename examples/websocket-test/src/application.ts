@@ -1,29 +1,31 @@
 import {
-    applicationEnvironment,
-    BaseApplication,
-    BindingKeys,
-    BindingNamespaces,
-    CoreBindings,
-    Environment,
-    HealthCheckBindingKeys,
-    HealthCheckComponent,
-    HTTP,
-    IApplicationConfigs,
-    IApplicationInfo,
-    IMiddlewareConfigs,
-    int,
-    RedisHelper,
-    SwaggerComponent,
-    TWebSocketAuthenticateFn,
-    TWebSocketClientConnectedFn,
-    TWebSocketClientDisconnectedFn,
-    TWebSocketMessageHandler,
-    TWebSocketValidateRoomFn,
-    ValueOrPromise,
-    WebSocketBindingKeys,
-    WebSocketComponent,
-    WebSocketServerHelper,
+  BaseApplication,
+  BindingKeys,
+  BindingNamespaces,
+  CoreBindings,
+  HealthCheckBindingKeys,
+  HealthCheckComponent,
+  IApplicationConfigs,
+  IApplicationInfo,
+  IMiddlewareConfigs,
+  SwaggerComponent,
+  ValueOrPromise,
+  WebSocketBindingKeys,
+  WebSocketComponent,
 } from '@venizia/ignis';
+import {
+  applicationEnvironment,
+  Environment,
+  HTTP,
+  int,
+  RedisHelper,
+  TWebSocketAuthenticateFn,
+  TWebSocketClientConnectedFn,
+  TWebSocketClientDisconnectedFn,
+  TWebSocketMessageHandler,
+  TWebSocketValidateRoomFn,
+  WebSocketServerHelper,
+} from '@venizia/ignis-helpers';
 import isEmpty from 'lodash/isEmpty';
 import packageJson from './../package.json';
 import { EnvironmentKeys } from './common/environments';
@@ -177,7 +179,12 @@ export class Application extends BaseApplication {
 
     // Client connected handler
     const clientConnectedFn: TWebSocketClientConnectedFn = ({ clientId, userId, metadata }) => {
-      logger.info('Client connected | clientId: %s | userId: %s | metadata: %j', clientId, userId, metadata);
+      logger.info(
+        'Client connected | clientId: %s | userId: %s | metadata: %j',
+        clientId,
+        userId,
+        metadata,
+      );
     };
 
     this.bind<TWebSocketClientConnectedFn>({
@@ -195,7 +202,13 @@ export class Application extends BaseApplication {
 
     // Message handler — route custom events
     const messageHandler: TWebSocketMessageHandler = ({ clientId, userId, message }) => {
-      logger.info('Message from %s (user: %s) | event: %s | data: %j', clientId, userId, message.event, message.data);
+      logger.info(
+        'Message from %s (user: %s) | event: %s | data: %j',
+        clientId,
+        userId,
+        message.event,
+        message.data,
+      );
 
       const wsEventService = this.get<WebSocketEventService>({
         key: BindingKeys.build({

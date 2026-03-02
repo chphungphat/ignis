@@ -15,7 +15,7 @@
     "eslint": "eslint --report-unused-disable-directives .",
     "lint": "bun run eslint && bun run prettier:cli",
     "lint:fix": "bun run eslint --fix && bun run prettier:fix",
-    "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
+    "prettier:cli": "prettier \"**/*.{js,ts,tsx}\" -l",
     "prettier:fix": "bun run prettier:cli --write",
     "rebuild": "bun run clean && bun run build",
     "migrate:dev": "NODE_ENV=development drizzle-kit push --config=src/migration.ts",
@@ -33,6 +33,7 @@
   "dependencies": {
     "@hono/zod-openapi": "^1.2.2",
     "@venizia/ignis": "latest",
+    "@venizia/ignis-helpers": "workspace:*",
     "dotenv-flow": "^4.1.0",
     "drizzle-orm": "^0.45.1",
     "hono": "^4.12.1",

@@ -1,26 +1,18 @@
 import {
-  AuthenticateComponent,
-  Authentication,
-  AuthenticationStrategyRegistry,
   BaseApplication,
   BindingKeys,
   BindingNamespaces,
-  DataTypes,
-  Environment,
-  getUID,
   HealthCheckBindingKeys,
   HealthCheckComponent,
-  HTTP,
   IApplicationConfigs,
   IApplicationInfo,
   IHealthCheckOptions,
   IMiddlewareConfigs,
-  int,
-  JWTAuthenticationStrategy,
   SwaggerBindingKeys,
   SwaggerComponent,
   ValueOrPromise,
 } from '@venizia/ignis';
+import { DataTypes, Environment, getUID, HTTP, int } from '@venizia/ignis-helpers';
 import isEmpty from 'lodash/isEmpty';
 import path from 'node:path';
 import packageJson from './../package.json';
@@ -28,7 +20,6 @@ import { TestController } from './controllers/test.controller';
 import { ViewController } from './controllers/view.controller';
 import { PostgresDataSource } from './datasources';
 import { ConfigurationRepository } from './repositories';
-import { AuthenticationService } from './services';
 
 // -----------------------------------------------------------------------------------------------
 export const beConfigs: IApplicationConfigs = {
@@ -79,7 +70,7 @@ export class Application extends BaseApplication {
 
     for (const name in middlewares) {
       const mwDef = middlewares[name];
-      const { enable = false, path, module, ...mwOptions } = mwDef;
+      const { enable = false, path: mwPath, module, ...mwOptions } = mwDef;
 
       if (!enable) {
         this.logger.debug(
@@ -96,23 +87,13 @@ export class Application extends BaseApplication {
         enable,
         mwOptions,
       );
-      if (!isEmpty(path)) {
-        server.use(path, module?.[name]?.(mwOptions));
+      if (!isEmpty(mwPath)) {
+        server.use(mwPath, module?.[name]?.(mwOptions));
         continue;
       }
 
       server.use(module?.[name]?.(mwOptions));
     }
-  }
-
-  registerAuth() {
-    this.service(AuthenticationService);
-    this.component(AuthenticateComponent);
-    AuthenticationStrategyRegistry.getInstance().register({
-      container: this,
-      name: Authentication.STRATEGY_JWT,
-      strategy: JWTAuthenticationStrategy,
-    });
   }
 
   preConfigure(): ValueOrPromise<void> {
@@ -121,9 +102,6 @@ export class Application extends BaseApplication {
 
     // Repositories
     this.repository(ConfigurationRepository);
-
-    // Services
-    this.registerAuth();
 
     // Controllers
     this.controller(TestController);

@@ -9,6 +9,6 @@
       "@/*": ["./*"]
     }
   },
-  "include": ["src", "./*.config.*", ".prettierrc.*"],
+  "include": ["src", "./*.config.*", ".prettierrc.*", "client.ts"],
   "exclude": ["node_modules", "dist", "app_data"]
 }

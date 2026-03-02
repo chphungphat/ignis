@@ -7,37 +7,16 @@ import {
   Authentication,
   AuthenticateBindingKeys,
   IAuthUser,
-  IBasicTokenServiceOptions,
-} from '../common';
+  TBasicTokenServiceOptions,
+} from '../../common';
 
-/**
- * Service for handling Basic Authentication.
- *
- * Extracts credentials from the `Authorization: Basic <base64>` header,
- * decodes them, and verifies using the provided verification function.
- *
- * @example
- * ```typescript
- * // Register with options
- * this.bind<IBasicTokenServiceOptions>({ key: AuthenticateBindingKeys.BASIC_OPTIONS })
- *   .toValue({
- *     verifyCredentials: async (creds, ctx) => {
- *       const user = await userRepo.findByUsername(creds.username);
- *       if (user && await bcrypt.compare(creds.password, user.passwordHash)) {
- *         return { userId: user.id, roles: user.roles };
- *       }
- *       return null;
- *     },
- *   });
- * this.service(BasicTokenService);
- * ```
- */
+/** Extracts and verifies Basic auth credentials from the Authorization header. */
 export class BasicTokenService<E extends Env = Env> extends BaseService {
-  private verifyCredentials: IBasicTokenServiceOptions<E>['verifyCredentials'];
+  protected verifyCredentials: TBasicTokenServiceOptions<E>['verifyCredentials'];
 
   constructor(
     @inject({ key: AuthenticateBindingKeys.BASIC_OPTIONS })
-    protected options: IBasicTokenServiceOptions<E>,
+    protected options: TBasicTokenServiceOptions<E>,
   ) {
     super({ scope: BasicTokenService.name });
 
@@ -51,16 +30,7 @@ export class BasicTokenService<E extends Env = Env> extends BaseService {
     this.verifyCredentials = options.verifyCredentials;
   }
 
-  // --------------------------------------------------------------------------------------
-  /**
-   * Extract credentials from Authorization header.
-   *
-   * Expected format: `Authorization: Basic base64(username:password)`
-   *
-   * @param context - The Hono request context
-   * @returns The extracted username and password
-   * @throws 401 Unauthorized if header is missing, invalid schema, or invalid format
-   */
+  /** Extracts username:password from Base64-encoded Authorization header. */
   extractCredentials(context: TContext<E, string>): { username: string; password: string } {
     const authHeaderValue = context.req.header('Authorization');
 
@@ -115,15 +85,7 @@ export class BasicTokenService<E extends Env = Env> extends BaseService {
     }
   }
 
-  // --------------------------------------------------------------------------------------
-  /**
-   * Verify credentials using the provided verification function.
-   *
-   * @param credentials - The extracted username and password
-   * @param context - The Hono request context
-   * @returns The authenticated user
-   * @throws 401 Unauthorized if credentials are invalid
-   */
+  /** Verifies credentials via the user-provided verification function. */
   async verify(opts: {
     credentials: { username: string; password: string };
     context: TContext<E, string>;

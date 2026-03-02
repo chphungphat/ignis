@@ -1,28 +1,29 @@
 import {
-  applicationEnvironment,
   BaseApplication,
   BindingKeys,
   BindingNamespaces,
   CoreBindings,
-  Environment,
   HealthCheckBindingKeys,
   HealthCheckComponent,
-  HTTP,
   IApplicationConfigs,
   IApplicationInfo,
   IHealthCheckOptions,
   IMiddlewareConfigs,
+  SwaggerComponent,
+  ValueOrPromise,
+} from '@venizia/ignis';
+import { SocketIOBindingKeys, SocketIOComponent } from '@venizia/ignis/socket-io';
+import {
+  applicationEnvironment,
+  Environment,
+  HTTP,
   int,
   RedisHelper,
-  SocketIOBindingKeys,
-  SocketIOComponent,
   SocketIOServerHelper,
-  SwaggerComponent,
   TSocketIOAuthenticateFn,
   TSocketIOClientConnectedFn,
   TSocketIOValidateRoomFn,
-  ValueOrPromise,
-} from '@venizia/ignis';
+} from '@venizia/ignis-helpers';
 import isEmpty from 'lodash/isEmpty';
 import packageJson from './../package.json';
 import { EnvironmentKeys } from './common/environments';
@@ -117,7 +118,9 @@ export class Application extends BaseApplication {
   // --------------------------------------------------------------------------------
   setupSocketIO() {
     // Redis connection
-    const redisHost = applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_REDIS_SOCKETIO_HOST);
+    const redisHost = applicationEnvironment.get<string>(
+      EnvironmentKeys.APP_ENV_REDIS_SOCKETIO_HOST,
+    );
     const redisPort = int(
       applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_REDIS_SOCKETIO_PORT),
     );
