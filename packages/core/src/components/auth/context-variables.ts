@@ -11,5 +11,7 @@ declare module 'hono' {
     [Authentication.SKIP_AUTHENTICATION]: boolean;
     [Authorization.RULES]: unknown;
     [Authorization.SKIP_AUTHORIZATION]: boolean;
+
+    ['requestId']: string;
   }
 }

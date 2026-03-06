@@ -19,11 +19,12 @@ import {
   UserStatuses,
   UserTypes,
 } from '@venizia/ignis';
-import { getError, HTTP } from '@venizia/ignis-helpers';
+import { getError, HTTP, logContext } from '@venizia/ignis-helpers';
 import { hash, compare, genSalt } from 'bcrypt';
 import { and, eq } from 'drizzle-orm';
 import { Env } from 'hono';
 
+@logContext()
 export class AuthenticationService
   extends BaseService
   implements

@@ -1,4 +1,5 @@
 import { BaseService, BindingKeys, BindingNamespaces, inject } from '@venizia/ignis';
+import { logContext } from '@venizia/ignis-helpers';
 import {
   AdvancedFilterQueryTestService,
   ArrayOperatorTestService,
@@ -18,6 +19,7 @@ import { JsonUpdateTestService } from './tests/json-update-test.service';
 // ----------------------------------------------------------------
 // Repository Test Service - Orchestrates all repository test suites
 // ----------------------------------------------------------------
+@logContext()
 export class RepositoryTestService extends BaseService {
   constructor(
     @inject({

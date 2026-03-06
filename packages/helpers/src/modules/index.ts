@@ -1,5 +1,7 @@
 export * from './base';
 
+export * from './cache';
+export * from './context';
 export * from './crypto';
 export * from './env';
 export * from './error';

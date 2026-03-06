@@ -8,6 +8,8 @@ Winston-based logging with scoped prefixes, multiple transports (console, daily-
 |-------|---------|----------|
 | `Logger` | -- | General-purpose scoped logger with caching |
 | `LoggerFactory` | -- | Factory that builds `Logger` instances from scope arrays |
+| [`ContextLogger`](./context-aware-logger) | -- | SLF4J-style auto-context logger with `[class][method][requestId]` prefixes |
+| [`@logContext()`](./context-aware-logger) | decorator | Class decorator — wraps methods for context capture + auto-injects `contextLogger` |
 | `HfLogger` | -- | Zero-allocation ring-buffer logger for hot paths (~100-300ns) |
 | `HfLogFlusher` | -- | Background flusher for `HfLogger` entries |
 | `DgramTransport` | `winston-transport.Transport` | Custom Winston transport that sends logs over UDP |
@@ -20,6 +22,9 @@ import { Logger, LoggerFactory, ApplicationLogger } from '@venizia/ignis-helpers
 
 // High-frequency logger
 import { HfLogger, HfLogFlusher } from '@venizia/ignis-helpers';
+
+// Context logger (see context-aware-logger.md for full docs)
+import { logContext, ContextLogger, getContextLogger } from '@venizia/ignis-helpers';
 
 // Constants & types
 import { LogLevels, LoggerFormats } from '@venizia/ignis-helpers';
@@ -521,6 +526,8 @@ APP_ENV_LOGGER_DGRAM_LEVELS=error,warn,info
 |--------|------|-------------|
 | `Logger` | class | Scoped logger with caching, wraps a Winston logger instance |
 | `ApplicationLogger` | value + type alias | Backward-compatible alias for `Logger` |
+| [`ContextLogger`](./context-aware-logger) | class | Auto-context logger with `[class][method][requestId]` prefixes |
+| [`logContext`](./context-aware-logger) | decorator | Class decorator for auto context capture + `contextLogger` injection |
 | `LoggerFactory` | class | Factory that creates `Logger` from scope arrays |
 | `HfLogger` | class | Zero-allocation ring-buffer logger |
 | `HfLogFlusher` | class | Background flusher for `HfLogger` |

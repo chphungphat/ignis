@@ -130,8 +130,9 @@ export interface IExecutionContext {
 // --------------------------------------------------------------------------------------------------------
 export interface IRequestContext {
   requestId?: string;
-  route?: string;
+  path?: string;
   method?: string;
+  url?: string;
 }
 
 // --------------------------------------------------------------------------------------------------------
