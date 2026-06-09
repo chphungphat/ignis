@@ -87,6 +87,9 @@ openspec
 CLAUDE.md
 CLAUDE.*.md
 **/*/CLAUDE.md
+.serena
+docs/plans
+docs/temp
 
 # Miscellaneous
 # Other temporary files, archives, and caches.
@@ -102,3 +105,4 @@ node_modules.zip
 **/*/__mf__/temp/
 
 **/*/.vitepress/cache
+

@@ -118,7 +118,9 @@ export class Application extends BaseApplication {
   // --------------------------------------------------------------------------------
   setupSocketIO() {
     // Redis connection
-    const redisHost = applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_REDIS_SOCKETIO_HOST);
+    const redisHost = applicationEnvironment.get<string>(
+      EnvironmentKeys.APP_ENV_REDIS_SOCKETIO_HOST,
+    );
     const redisPort = int(
       applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_REDIS_SOCKETIO_PORT),
     );
@@ -236,6 +238,7 @@ export class Application extends BaseApplication {
       await this.redisHelper.disconnect();
     }
 
+    // eslint-disable-next-line @typescript-eslint/await-thenable
     await super.stop();
   }
 }

@@ -16,6 +16,7 @@ export class Configuration extends BaseEntity<TConfigurationSchema> {
   static readonly TABLE_NAME = Configuration.name;
 
   constructor() {
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
     super({ name: Configuration.TABLE_NAME, schema: configurationTable });
   }
 }

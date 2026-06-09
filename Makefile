@@ -1,5 +1,6 @@
 .PHONY: all build build-all core dev-configs docs docs-mcp helpers inversion boot \
         help install clean setup-hooks \
+				purge \
         lint lint-all lint-packages lint-examples \
         lint-dev-configs lint-inversion lint-helpers lint-boot lint-core lint-docs-mcp \
         update update-all update-core update-dev-configs update-docs-mcp update-helpers update-inversion update-boot
@@ -19,6 +20,12 @@ install:
 clean:
 	@echo "🧹 Cleaning all packages..."
 	@bun run --filter "*" clean
+
+purge:
+	@echo "Removing all node_modules..."
+	@find . -name "node_modules" -type d -prune -exec rm -rf {} +
+	@echo "Purge completed. Run 'make install' to reinstall."
+
 
 # ============================================================================
 # GIT HOOKS

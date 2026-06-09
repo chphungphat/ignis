@@ -70,7 +70,7 @@ export class Application extends BaseApplication {
 
     for (const name in middlewares) {
       const mwDef = middlewares[name];
-      const { enable = false, path, module, ...mwOptions } = mwDef;
+      const { enable = false, path: mwPath, module, ...mwOptions } = mwDef;
 
       if (!enable) {
         this.logger.debug(
@@ -87,8 +87,8 @@ export class Application extends BaseApplication {
         enable,
         mwOptions,
       );
-      if (!isEmpty(path)) {
-        server.use(path, module?.[name]?.(mwOptions));
+      if (!isEmpty(mwPath)) {
+        server.use(mwPath, module?.[name]?.(mwOptions));
         continue;
       }
 
