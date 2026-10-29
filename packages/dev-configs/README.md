@@ -1,50 +1,42 @@
 # @venizia/dev-configs
 
-The oxlint, oxfmt, ESLint, Prettier and TypeScript settings every IGNIS package is built with. Install
+The oxlint, ESLint and TypeScript settings every IGNIS package is built with. Install
 it as a dev dependency in an application that wants the same rules.
 
 ## Install
 
 ```bash
-bun add -d @venizia/dev-configs oxlint oxlint-tsgolint oxfmt eslint typescript
+bun add -d @venizia/dev-configs oxlint oxlint-tsgolint eslint typescript
 ```
 
-`oxlint` (>=1.88.0), `oxlint-tsgolint` (>=7.0.2004), `oxfmt` (>=0.73.0), `eslint` (9 or 10),
-`prettier` (3) and `typescript` (5 or 6) are optional peers. Install only the tools you use. Keep the
+`oxlint` (>=1.88.0), `oxlint-tsgolint` (>=7.0.2004), `eslint` (9 or 10),
+`typescript` (5 or 6) are optional peers. Install only the tools you use. Formatting is `bun fmt` (Bun 1.4.4 or newer), set in `bunfig.toml`: see [Formatting](#formatting). Keep the
 ESLint config `.mjs`: a TypeScript one (`.mts`) makes ESLint require `jiti`, one more dependency. A
-project that still runs ESLint and Prettier installs `eslint prettier` and skips the oxc tools.
+project that only wants the full ESLint preset installs `eslint` and skips the oxc tools.
 
 ## Use it
 
 Each tool takes one file. IGNIS keeps them in a `.configs/` folder and passes `-c` to each tool.
 
 ```typescript
-// .configs/oxlint.config.mts
+// .configs/lints/oxlint.config.mts
 import { defineConfig } from 'oxlint';
-import { oxlintConfigs } from '@venizia/dev-configs/linters';
+import { oxlintConfigs } from '@venizia/dev-configs/linters/oxlint';
 
 export default defineConfig(oxlintConfigs);
 ```
 
 ```typescript
-// .configs/oxfmt.config.mts
-import { defineConfig } from 'oxfmt';
-import { oxfmtConfigs } from '@venizia/dev-configs/formatters';
-
-export default defineConfig(oxfmtConfigs);
-```
-
-```typescript
-// .configs/eslint.config.mjs - what oxlint cannot run: naming convention + house rules
+// .configs/lints/eslint.config.mjs - what oxlint cannot run: naming convention + house rules
 import { houseConfigs } from '@venizia/dev-configs/linters';
 
 export default houseConfigs;
 ```
 
 ```bash
-oxlint -c .configs/oxlint.config.mts --deny-warnings
-eslint -c .configs/eslint.config.mjs .
-oxfmt -c .configs/oxfmt.config.mts --check "**/*.{ts,tsx,mts,js,mjs}"
+oxlint -c .configs/lints/oxlint.config.mts --deny-warnings
+eslint -c .configs/lints/eslint.config.mjs .
+bun fmt --check "**/*.{ts,tsx,mts,js,mjs}"
 ```
 
 `tsconfig.json` stays at the project root. Bun, the editor and oxlint's type-aware engine only find it
@@ -69,13 +61,12 @@ The two options in `compilerOptions` repeat the base on purpose - see
 
 ### Browser and React projects
 
-The presets above target a Bun or Node backend. Code that runs in a browser swaps each one for its
+The presets above target a Bun backend. Code that runs in a browser swaps each one for its
 browser version. A React project swaps it for the React version, which builds on the browser one.
 
 | Tool | Backend | Browser | React |
 | :--- | :--- | :--- | :--- |
 | oxlint | `oxlintConfigs` | `BrowserOxlintConfigs.create()` | `ReactOxlintConfigs.create()` |
-| oxfmt | `oxfmtConfigs` | `browserOxfmtConfigs` | `browserOxfmtConfigs` |
 | ESLint | `houseConfigs` | `houseConfigs` | `reactHouseConfigs` |
 | tsconfig | `tsconfig.common.json` | `tsconfig.browser.json` | `tsconfig.react.json` |
 
@@ -113,10 +104,9 @@ Every IGNIS package and example does.
 | :--- | :--- |
 | `@venizia/dev-configs` | Everything below, re-exported |
 | `@venizia/dev-configs/compilers` | `BunCompiler` |
-| `@venizia/dev-configs/formatters` | `oxfmtConfigs`, `browserOxfmtConfigs`, `prettierConfigs` |
 | `@venizia/dev-configs/testing` | `rejectionOf`, `expectRejection` - test helpers for a promise that must reject (imports `bun:test`; tests only) |
 | `@venizia/dev-configs/linters` | `oxlintConfigs`, `OxlintConfigs`, `BrowserOxlintConfigs`, `ReactOxlintConfigs`, `LintIgnore`, `namingConventionConfigs`, `reactNamingConventionConfigs`, `houseConfigs`, `reactHouseConfigs`, `eslintConfigs`, `ReactEslintConfigs`, the rule classes and their types |
-| `@venizia/dev-configs/linters/oxlint` | `oxlintConfigs`, `OxlintConfigs`, `IOxlintPresetOptions`, `BrowserOxlintConfigs`, `ReactOxlintConfigs`: the oxlint presets only. Loads in milliseconds: `/linters` also loads ESLint and its plugins, which an oxlint config never uses |
+| `@venizia/dev-configs/linters/oxlint` | `oxlintConfigs`, `OxlintConfigs`, `IOxlintPresetOptions`, `BrowserOxlintConfigs`, `ReactOxlintConfigs`, `LintIgnore`, the rule classes and their types: everything an oxlint config needs, and nothing that loads ESLint. Loads in milliseconds: `/linters` also loads ESLint and its plugins, which an oxlint config never uses |
 | `@venizia/dev-configs/tsconfig.base.json` | Target and lib ES2025, `module` Node16, strict mode (`noImplicitAny` and `useUnknownInCatchVariables` on) with `strictPropertyInitialization` off (DI-injected properties have no initializer), `noEmitOnError`, tests excluded |
 | `@venizia/dev-configs/tsconfig.common.json` | Extends the base and switches `module` and `moduleResolution` to `nodenext` |
 | `@venizia/dev-configs/tsconfig.browser.json` | Extends the base for a browser library built with a bundler: `module` ESNext, `moduleResolution` bundler, lib ES2025 + `DOM` + `DOM.Iterable`, `types: []` so no Bun types reach `dist` |
@@ -157,7 +147,7 @@ Not ported:
 where `''` and `0` fall back on purpose opts out in one line:
 
 ```ts
-// .configs/oxlint.config.mts
+// .configs/lints/oxlint.config.mts
 import { defineConfig } from 'oxlint';
 import { OxlintConfigs } from '@venizia/dev-configs/linters/oxlint';
 
@@ -179,15 +169,17 @@ booleans. `BrowserOxlintConfigs.create()` and `ReactOxlintConfigs.create()` take
 | `MaxParamsOwnRule` | `venizia/max-params-own` | `build({ max: 5 })` | A function we write takes at most `max` positional parameters. Not counted: an inline callback passed to a call or a JSX prop, a signature a declared type fixes, a constructor whose parameters are all `@inject`. A hook callback counts. |
 | `NoNewErrorRule` | `venizia/no-new-error` | `error` | Throw through `getError` (or an `ApplicationError`), never `new Error(...)` / `Error(...)`. Off in tests. |
 | `NoLeakedRenderRule` | `venizia/no-leaked-render` | `error`, in `reactHouseConfigs` only | A JSX child is drawn with `cond ? <X /> : null`, never `cond && <X />`, which draws `0` when `cond` is `0`. `--fix` rewrites it. `disabled={a && b}` is a value, not a child, and passes. |
-| `ConstClassValuesRule` | `venizia/const-class-values` | off; `build({ namePattern })` | An exported type named like a logic value (`State`, `Status`, `Stage`, `Mode`, `Kind`, `Type` by default) is a const class plus `TConstValue<typeof X>`, not a union of string literals. |
+| `ConstClassValuesRule` | `venizia/const-class-values` | `warn` in both presets; `build({ severity, namePattern })` | V-C-08. A union of string literals in an exported declaration (a type alias, an interface member, a generic constraint, a parameter or return type) is a const class plus `TConstValue<typeof X>`. Not counted: `Pick`, `Omit`, `Extract`, `Exclude`, `Record` arguments and mapped-type keys, and a union with a non-string member. `namePattern` narrows it to exported type aliases whose name matches. Off in tests. |
+| `@typescript-eslint/consistent-type-assertions` | `assertionStyle: never` | `warn` in both presets | V-C-10. `as X`, `as any` and `as unknown as X` warn; `as const` and `satisfies` do not. Off in tests. |
 
-`const-class-values` is registered in the plugin but no preset turns it on: a few IGNIS types still
-break it. Enable it with `[ConstClassValuesRule.NAME]: ConstClassValuesRule.build()`.
+`const-class-values` and the cast rule only warn, so adopting them never fails a lint. Raise one to an error
+with `[ConstClassValuesRule.NAME]: ConstClassValuesRule.build({ severity: 'error' })`. The 5-parameter
+limit (V-C-02) is `venizia/max-params-own`, an error.
 
 ### namingConventionConfigs
 
 `namingConventionConfigs` (type `Linter.Config[]`) sets only `@typescript-eslint/naming-convention`, with
-the 15 LoopBack 4 selectors. It targets `.ts`, `.tsx`, `.mts` and `.cts`, and ignores `dist`, `build`,
+its 15 selectors. It targets `.ts`, `.tsx`, `.mts` and `.cts`, and ignores `dist`, `build`,
 `coverage`, `*.d.ts` and plain JavaScript. ESLint does not report unused disable comments in this
 config, because oxlint owns the other rules.
 
@@ -211,13 +203,13 @@ Types: `TRuleSeverity`, `TOxlintRuleEntry`, `TNamingSelector`, `IRestrictedImpor
 Replace a rule by key. This makes `==` an error everywhere and bans one more import:
 
 ```typescript
-// .configs/oxlint.config.mts
+// .configs/lints/oxlint.config.mts
 import { defineConfig } from 'oxlint';
 import {
   EqeqeqRule,
   NoRestrictedImportsRule,
   oxlintConfigs,
-} from '@venizia/dev-configs/linters';
+} from '@venizia/dev-configs/linters/oxlint';
 
 export default defineConfig({
   ...oxlintConfigs,
@@ -231,33 +223,25 @@ export default defineConfig({
 });
 ```
 
-### oxfmtConfigs and prettierConfigs
+### Formatting
 
-`oxfmtConfigs` (type `OxfmtConfig`) and `prettierConfigs` hold the same seven options, so the output
-matches. oxfmt differs from Prettier on long union types, which it breaks with a leading `|` per line.
+There is no formatter preset to import: `bun fmt` reads the `[fmt]` table of `bunfig.toml` in the folder it runs in or any parent, so one table at the repository root serves every package. The same table serves backend, browser and React code.
 
-| Setting | Value |
-| :--- | :--- |
-| `printWidth` | `100` |
-| `tabWidth` | `2` |
-| `singleQuote` | `true` |
-| `semi` | `true` |
-| `trailingComma` | `'all'` |
-| `bracketSpacing` | `true` |
-| `arrowParens` | `'avoid'` |
+```toml
+[fmt]
+printWidth = 100
+singleQuote = true
+arrowParens = "always"
+flavor = "oxfmt"
+```
 
-`browserOxfmtConfigs` is `oxfmtConfigs` with two changes for browser and React code:
-
-| Setting | Value | Effect |
-| :--- | :--- | :--- |
-| `arrowParens` | `'always'` | `(x) => x` instead of `x => x` |
-| `bracketSameLine` | `true` | The closing `>` of a multi-line JSX element stays on its last attribute line, which keeps JSX diffs small |
+`flavor = "oxfmt"` keeps the output IGNIS was formatted with; without it Bun formats in its default flavor, which puts the first member of a long union type on its own `|` line. Bun's defaults supply the rest: `tabWidth` 2, `trailingComma` `"all"`, `semi`, `bracketSpacing`. `devz lint` runs `bun fmt --no-script` and passes each pattern of `.configs/formatters/.ignore` as `--ignore-pattern`.
 
 ### eslintConfigs
 
 `eslintConfigs` keeps its shape and resolves to the same rules as before, but is now owned here instead
-of wrapping `@minimaltech/eslint-node`: ESLint recommended, typescript-eslint, Prettier as a lint
-rule, naming conventions, `curly`, `eslint-plugin-n`, plus these IGNIS rules:
+of wrapping `@minimaltech/eslint-node`: ESLint recommended, typescript-eslint, naming
+conventions, `curly`, `eslint-plugin-n`, plus these IGNIS rules:
 
 | Rule | Setting |
 | :--- | :--- |
@@ -312,7 +296,7 @@ plain-http origin or in a WebView, the method is `undefined`. Use this preset fo
 does not use React.
 
 ```ts
-// .configs/oxlint.config.mts
+// .configs/lints/oxlint.config.mts
 import { defineConfig } from 'oxlint';
 import { BrowserOxlintConfigs } from '@venizia/dev-configs/linters/oxlint';
 
@@ -325,13 +309,13 @@ The oxlint version of the React preset. oxlint runs the React, hooks and `jsx-a1
 nothing is passed in. Pair it with `reactNamingConventionConfigs` on the ESLint side:
 
 ```ts
-// .configs/oxlint.config.mts
+// .configs/lints/oxlint.config.mts
 import { defineConfig } from 'oxlint';
 import { ReactOxlintConfigs } from '@venizia/dev-configs/linters/oxlint';
 
 export default defineConfig(ReactOxlintConfigs.create());
 
-// .configs/eslint.config.mjs
+// .configs/lints/eslint.config.mjs
 import { reactNamingConventionConfigs } from '@venizia/dev-configs/linters';
 
 export default reactNamingConventionConfigs;
@@ -371,10 +355,10 @@ Makefile can set `LINT_IGNORE` instead (`make/project.mk` passes it as `--ignore
 // .configs/lint-ignore.mjs
 export const LINT_IGNORE = ['src/components/shadcn/**', 'dev-dist/**'];
 
-// .configs/oxlint.config.mts
+// .configs/lints/oxlint.config.mts
 export default defineConfig(ReactOxlintConfigs.create({ ignore: LINT_IGNORE }));
 
-// .configs/eslint.config.mjs
+// .configs/lints/eslint.config.mjs
 export default [LintIgnore.eslint({ patterns: LINT_IGNORE }), ...reactHouseConfigs];
 ```
 
@@ -385,12 +369,33 @@ instead: `LintIgnore.oxlint({ config, patterns: LINT_IGNORE })`.
 ### BunCompiler
 
 `BunCompiler.compile()` builds one Bun executable: minified, with a linked source map. The
-compile target comes from `BUN_TARGET` and defaults to `bun-linux-x64`.
+compile target comes from `BUN_TARGET` and defaults to `bun-linux-x64`. `define` passes compile-time
+constants to `Bun.build`; a compile script uses it to bake the build stamp.
 
 ```typescript
 import { BunCompiler } from '@venizia/dev-configs';
 
 await BunCompiler.compile({ entrypoint: './src/index.ts', outfile: './dist/app' });
+```
+
+Bake a value into the binary with `define`. Each value is a JSON-encoded expression:
+
+```typescript
+await BunCompiler.compile({
+  entrypoint: './src/index.ts',
+  outfile: './dist/app',
+  define: { APP_FLAVOUR: JSON.stringify('blue') },
+});
+```
+
+An app that starts a Bun Worker lists the worker file in `workers`, so it is compiled into the same binary. The entrypoint starts it by the path it has in the source:
+
+```typescript
+// src/index.ts: new Worker('./image-reader.worker.ts')
+await BunCompiler.compile({
+  entrypoint: './src/index.ts',
+  workers: ['./src/image-reader.worker.ts'],
+});
 ```
 
 ## Where it sits
@@ -407,3 +412,16 @@ The root of the chain, with no IGNIS dependency: **dev-configs** -> inversion ->
 - [Source](https://github.com/VENIZIA-AI/ignis/blob/main/packages/dev-configs)
 
 MIT licensed - see [LICENSE.md](./LICENSE.md).
+
+---
+
+<p align="center">
+  <a href="https://venizia.ai">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://venizia.ai/assets/logo-white.svg">
+      <img src="https://venizia.ai/assets/logo.svg" alt="VENIZIA" height="28">
+    </picture>
+  </a>
+  <br>
+  <sub>@venizia/dev-configs is part of IGNIS, built and maintained by <a href="https://venizia.ai">VENIZIA</a>.</sub>
+</p>

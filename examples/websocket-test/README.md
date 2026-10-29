@@ -6,7 +6,7 @@ handshake, with no Socket.IO protocol involved.
 ```bash
 bun install
 docker compose up -d
-bun run start
+bun run server:dev
 ```
 
 The app listens on `http://localhost:3000` (set `PORT` to change it). Browse the API at
@@ -84,3 +84,16 @@ not failed, when Redis is unreachable.
 
 - [Socket.IO test](../socket-io-test) - the same shape over the Socket.IO protocol, with Node.js support
 - [`vert`](../vert) - the production reference: authentication, authorization, transactions
+
+---
+
+<p align="center">
+  <a href="https://venizia.ai">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://venizia.ai/assets/logo-white.svg">
+      <img src="https://venizia.ai/assets/logo.svg" alt="VENIZIA" height="28">
+    </picture>
+  </a>
+  <br>
+  <sub>IGNIS is built and maintained by <a href="https://venizia.ai">VENIZIA</a>.</sub>
+</p>

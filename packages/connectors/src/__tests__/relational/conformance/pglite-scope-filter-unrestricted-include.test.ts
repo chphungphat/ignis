@@ -96,7 +96,7 @@ const resolveScope = (state: TScopeState) => {
 
 @model({
   type: 'entity',
-  settings: { scopeFilter: { resolve: () => resolveScope(currentMerchantScope) } },
+  settings: { access: { resolve: () => resolveScope(currentMerchantScope) } },
 })
 class ScopeUnrestrictedMerchantEntity extends BasePostgresEntity {
   static override TABLE_NAME = MERCHANT_TABLE;
@@ -106,7 +106,7 @@ class ScopeUnrestrictedMerchantEntity extends BasePostgresEntity {
 
 @model({
   type: 'entity',
-  settings: { scopeFilter: { resolve: () => resolveScope(currentProductScope) } },
+  settings: { access: { resolve: () => resolveScope(currentProductScope) } },
 })
 class ScopeUnrestrictedProductEntity extends BasePostgresEntity {
   static override TABLE_NAME = PRODUCT_TABLE;
@@ -116,7 +116,7 @@ class ScopeUnrestrictedProductEntity extends BasePostgresEntity {
 
 @model({
   type: 'entity',
-  settings: { scopeFilter: { resolve: () => resolveScope(currentReviewScope) } },
+  settings: { access: { resolve: () => resolveScope(currentReviewScope) } },
 })
 class ScopeUnrestrictedReviewEntity extends BasePostgresEntity {
   static override TABLE_NAME = REVIEW_TABLE;
@@ -268,14 +268,12 @@ describe('toInclude - each child model registered its own @model settings', () =
     const registry = MetadataRegistry.getInstance();
 
     expect(
-      registry.getModelEntry({ name: MERCHANT_TABLE })?.metadata.settings?.scopeFilter,
+      registry.getModelEntry({ name: MERCHANT_TABLE })?.metadata.settings?.access,
     ).toBeDefined();
     expect(
-      registry.getModelEntry({ name: PRODUCT_TABLE })?.metadata.settings?.scopeFilter,
+      registry.getModelEntry({ name: PRODUCT_TABLE })?.metadata.settings?.access,
     ).toBeDefined();
-    expect(
-      registry.getModelEntry({ name: REVIEW_TABLE })?.metadata.settings?.scopeFilter,
-    ).toBeDefined();
+    expect(registry.getModelEntry({ name: REVIEW_TABLE })?.metadata.settings?.access).toBeDefined();
 
     expect(typeof ScopeUnrestrictedProductEntity).toBe('function');
     expect(typeof ScopeUnrestrictedReviewEntity).toBe('function');
@@ -291,9 +289,9 @@ describe('toInclude - parent UNRESTRICTED, child scoped: the child stays scoped'
       filter: { order: ['id asc'], include: [{ relation: 'products' }] },
     });
 
-    expect(merchants.map(merchant => merchant.name)).toEqual(['Merchant A', 'Merchant B']);
-    expect(merchants[0].products?.map(product => product.name)).toEqual(['a-product-under-m1']);
-    expect(merchants[1].products?.map(product => product.name)).toEqual(['a-product-under-m2']);
+    expect(merchants.map((merchant) => merchant.name)).toEqual(['Merchant A', 'Merchant B']);
+    expect(merchants[0].products?.map((product) => product.name)).toEqual(['a-product-under-m1']);
+    expect(merchants[1].products?.map((product) => product.name)).toEqual(['a-product-under-m2']);
   });
 });
 
@@ -306,8 +304,8 @@ describe('toInclude - parent scoped, child UNRESTRICTED: the child is unscoped, 
       filter: { order: ['id asc'], include: [{ relation: 'products' }] },
     });
 
-    expect(merchants.map(merchant => merchant.name)).toEqual(['Merchant A']);
-    expect(merchants[0].products?.map(product => product.name).sort()).toEqual([
+    expect(merchants.map((merchant) => merchant.name)).toEqual(['Merchant A']);
+    expect(merchants[0].products?.map((product) => product.name).sort()).toEqual([
       'a-product-under-m1',
       'leaked-b-product-under-m1',
     ]);
@@ -327,16 +325,16 @@ describe('toInclude - nested include, three levels, mixed', () => {
       },
     });
 
-    expect(merchants.map(merchant => merchant.name)).toEqual(['Merchant A', 'Merchant B']);
+    expect(merchants.map((merchant) => merchant.name)).toEqual(['Merchant A', 'Merchant B']);
 
     const [merchantA, merchantB] = merchants;
-    expect(merchantA.products?.map(product => product.name)).toEqual(['a-product-under-m1']);
-    expect(merchantA.products?.[0].reviews?.map(review => review.body).sort()).toEqual([
+    expect(merchantA.products?.map((product) => product.name)).toEqual(['a-product-under-m1']);
+    expect(merchantA.products?.[0].reviews?.map((review) => review.body).sort()).toEqual([
       'cross-tenant-review-under-a-product',
       'good-a-review',
     ]);
 
-    expect(merchantB.products?.map(product => product.name)).toEqual(['a-product-under-m2']);
+    expect(merchantB.products?.map((product) => product.name)).toEqual(['a-product-under-m2']);
     expect(merchantB.products?.[0].reviews).toEqual([]);
   });
 
@@ -352,19 +350,19 @@ describe('toInclude - nested include, three levels, mixed', () => {
       },
     });
 
-    expect(merchants.map(merchant => merchant.name)).toEqual(['Merchant A']);
-    expect(merchants[0].products?.map(product => product.name).sort()).toEqual([
+    expect(merchants.map((merchant) => merchant.name)).toEqual(['Merchant A']);
+    expect(merchants[0].products?.map((product) => product.name).sort()).toEqual([
       'a-product-under-m1',
       'leaked-b-product-under-m1',
     ]);
 
     const productWithReviews = merchants[0].products?.find(
-      product => product.name === 'a-product-under-m1',
+      (product) => product.name === 'a-product-under-m1',
     );
-    expect(productWithReviews?.reviews?.map(review => review.body)).toEqual(['good-a-review']);
+    expect(productWithReviews?.reviews?.map((review) => review.body)).toEqual(['good-a-review']);
 
     const productWithoutReviews = merchants[0].products?.find(
-      product => product.name === 'leaked-b-product-under-m1',
+      (product) => product.name === 'leaked-b-product-under-m1',
     );
     expect(productWithoutReviews?.reviews).toEqual([]);
   });

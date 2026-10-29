@@ -21,30 +21,39 @@ import { isDataSourceClass } from '../datasources';
 import type { AbstractEntity } from '../models';
 import { RepositoryTypes } from '../repositories/common/constants';
 import { injectable, pickRegistrationOptions } from './injectable';
+import { normalizeModelMetadata } from './model-metadata';
+import { assertNoRemovedModelSettings } from './model-settings';
 
 /** Registers a model class with its static schema and relations. */
-export const model = (metadata: IModelMetadata): ClassDecorator => {
-  return target => {
-    injectable({ type: ArtifactTypes.MODEL, ...pickRegistrationOptions({ metadata }) })(target);
+export const model = (input: IModelMetadata = {}): ClassDecorator => {
+  return (target) => {
+    injectable({ type: ArtifactTypes.MODEL, ...pickRegistrationOptions({ metadata: input }) })(
+      target,
+    );
 
-    const defaultLimit = metadata.settings?.defaultLimit;
+    const metadata = normalizeModelMetadata({ model: target.name, metadata: input });
+
+    assertNoRemovedModelSettings({ model: target.name, settings: metadata.settings });
+    const { settings } = metadata;
+
+    const defaultLimit = settings?.query?.limit?.default;
     if (defaultLimit !== undefined && (!Number.isInteger(defaultLimit) || defaultLimit <= 0)) {
       throw getError({
-        message: `[model][${target.name}] Invalid 'defaultLimit' | Expected a positive integer | Got: ${defaultLimit}`,
+        message: `[model][${target.name}] Invalid 'query.limit.default' | Expected a positive integer | Got: ${defaultLimit}`,
       });
     }
 
-    // Validated at DECORATION time, like defaultLimit: a bad ceiling is a wiring mistake, and
+    // Validated at DECORATION time, like the default limit: a bad ceiling is a wiring mistake, and
     // catching it at boot beats catching it on the one request that happens to reach the limit.
-    const maxLimit = metadata.settings?.maxLimit;
+    const maxLimit = settings?.query?.limit?.max;
     if (maxLimit !== undefined && (!Number.isInteger(maxLimit) || maxLimit <= 0)) {
       throw getError({
-        message: `[model][${target.name}] Invalid 'maxLimit' | Expected a positive integer | Got: ${maxLimit}`,
+        message: `[model][${target.name}] Invalid 'query.limit.max' | Expected a positive integer | Got: ${maxLimit}`,
       });
     }
 
     // Auto-populate AUTHORIZATION_SUBJECT from authorize.principal if not already set
-    const principal = metadata.settings?.authorize?.principal;
+    const principal = settings?.authorize?.principal;
     if (principal && !Object.hasOwn(target, 'AUTHORIZATION_SUBJECT')) {
       (target as Record<string, unknown>).AUTHORIZATION_SUBJECT = principal;
     }
@@ -55,7 +64,7 @@ export const model = (metadata: IModelMetadata): ClassDecorator => {
 
 /** Registers a datasource with driver and auto-discovery settings. */
 export const datasource = (metadata?: IDataSourceMetadata): ClassDecorator => {
-  return target => {
+  return (target) => {
     injectable({
       type: ArtifactTypes.DATASOURCE,
       ...pickRegistrationOptions({ metadata: metadata ?? {} }),
@@ -150,7 +159,7 @@ const registerDataSourceInjection = (opts: {
     MetadataKeys.INJECT,
     target,
   );
-  const injectAtIndex0 = ownInjects?.find(entry => entry?.index === 0);
+  const injectAtIndex0 = ownInjects?.find((entry) => entry?.index === 0);
 
   if (injectAtIndex0) {
     // `@inject({ target })` carries no key; read the one recorded on the class. The function form
@@ -318,7 +327,7 @@ export const repository = <
 >(
   metadata?: TRepositoryMetadata<Model, DataSource>,
 ): ClassDecorator => {
-  return target => {
+  return (target) => {
     const registry = MetadataRegistry.getInstance();
     if (!metadata) {
       applyRepositoryMetadata({

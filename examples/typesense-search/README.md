@@ -7,7 +7,7 @@ of `ControllerFactory.defineCrudController`.
 ```bash
 docker compose up -d
 bun install
-bun run start
+bun run server:dev
 ```
 
 The app listens on `http://localhost:3000` (set `PORT` to change it). Browse the API at
@@ -102,7 +102,7 @@ unreachable, so `bun test` stays green with no docker running.
 
 ## Where the data goes
 
-`bun run start` logs to `app_data/logs`; `app_data/` is gitignored. Documents live in the Typesense
+`bun run server:dev` logs to `app_data/logs`; `app_data/` is gitignored. Documents live in the Typesense
 container's `typesense-data` volume - `docker compose down -v` clears it.
 
 | Variable | Default | Meaning |
@@ -111,7 +111,7 @@ container's `typesense-data` volume - `docker compose down -v` clears it.
 | `APP_ENV_TYPESENSE_PORT` | `18108` | Typesense port - matches `docker-compose.yml` |
 | `APP_ENV_TYPESENSE_PROTOCOL` | `http` | `http` or `https` |
 | `APP_ENV_TYPESENSE_API_KEY` | `xyz` | Matches `docker-compose.yml`'s `--api-key` |
-| `APP_ENV_LOGGER_FOLDER_PATH` | set to `./app_data/logs` by `bun run start` | Unset: console logging only |
+| `APP_ENV_LOGGER_FOLDER_PATH` | set to `./app_data/logs` by `bun run server:dev` | Unset: console logging only |
 | `PORT` | `3000` | The port the server listens on |
 | `TYPESENSE_URL` (smoke test only) | `http://127.0.0.1:18108` | Where the smoke test checks reachability before running |
 
@@ -119,3 +119,16 @@ container's `typesense-data` volume - `docker compose down -v` clears it.
 
 - [PGlite quickstart](../pglite-quickstart) - CRUD and a relation on Postgres
 - [`vert`](../vert) - the production reference: authentication, authorization, transactions
+
+---
+
+<p align="center">
+  <a href="https://venizia.ai">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://venizia.ai/assets/logo-white.svg">
+      <img src="https://venizia.ai/assets/logo.svg" alt="VENIZIA" height="28">
+    </picture>
+  </a>
+  <br>
+  <sub>IGNIS is built and maintained by <a href="https://venizia.ai">VENIZIA</a>.</sub>
+</p>

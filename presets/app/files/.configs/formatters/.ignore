@@ -1,0 +1,4 @@
+# Paths bun fmt skips: one gitignore-style pattern per line, relative to this app.
+# `devz lint` passes each line on as --ignore-pattern; lines starting with # are comments.
+# Example: vendored code that keeps its own format.
+# src/vendor/**

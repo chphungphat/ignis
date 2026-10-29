@@ -37,12 +37,12 @@ The example exists to make that visible: only the datasource is PGlite-aware.
 
 ```bash
 bun install
-bun run start        # http://localhost:3000/api/notes, explorer at /api/doc/explorer
+bun run server:dev        # http://localhost:3000/api/notes, explorer at /api/doc/explorer
 bun test              # smoke test: same Application, free port, in-memory database
 ```
 
 Runtime state: `app_data/database/pgdata` for the data directory and `app_data/logs` for rotating
-log files, both created on first boot by the `start` script. `app_data/` is gitignored.
+log files, both created on first boot by the `server:dev` script. `app_data/` is gitignored.
 
 ## Notable / non-obvious
 
@@ -53,8 +53,7 @@ log files, both created on first boot by the `start` script. `app_data/` is giti
   rollback. Under concurrency, route writes through a transaction.
 - `application.init()` must run before `application.start()`, or resolving the controller fails with
   `@app/instance is not bounded`.
-- This example is one of `SMOKE_EXAMPLES` in `scripts/examples.ts` - `bun scripts/examples.ts smoke`
-  runs its `bun test` in CI, no docker needed.
+- The smoke test runs with `bun test` inside the example folder, not in CI. No docker needed.
 
 ## Related
 - [sqlite-quickstart](/examples/sqlite-quickstart.md)

@@ -259,7 +259,6 @@ Fields like `password` must never leave the database by accident. Declare them o
 
 ```typescript
 @model({
-  type: 'entity',
   settings: {
     hiddenProperties: ['password', 'secret', 'apiKey'],
   },
@@ -322,9 +321,9 @@ await repository.find({ filter: { where: { status: 'active' } } });
 ```
 
 > [!NOTE]
-> `find()` always applies a default limit when the filter has none. It uses the model's `@model({ settings: { defaultLimit } })` if declared, otherwise the global default of `10`. Pass an explicit `limit` to override either default. `findOne`/`findById` are unaffected - they force `limit: 1` on the Core API path regardless.
+> `find()` always applies a default limit when the filter has none. It uses the model's `@model({ settings: { query: { limit: { default: N } } } })` if declared, otherwise the global default of `10`. Pass an explicit `limit` to override either default. `findOne`/`findById` are unaffected - they force `limit: 1` on the Core API path regardless.
 
-An explicit `limit` is bounded from above as well. The repository checks it against the model's `@model({ settings: { maxLimit } })`, defaulting to `DEFAULT_MAX_LIMIT` (`1000`), and throws before the query runs when the request is over the ceiling, negative, or not an integer.
+An explicit `limit` is bounded from above as well. The repository checks it against the model's `@model({ settings: { query: { limit: { max: N } } } })`, defaulting to `DEFAULT_MAX_LIMIT` (`1000`), and throws before the query runs when the request is over the ceiling, negative, or not an integer.
 
 ```typescript
 await repository.find({ filter: { limit: 5000 } });
@@ -521,7 +520,7 @@ export class AuditLogRepository extends ReadableRepository<typeof AuditLog.schem
 
 ## Default Filter Bypass
 
-A model's `defaultFilter` (e.g. soft-delete's `isDeleted = false`) applies to every query unless you opt out for an admin or maintenance path:
+A model's default filter, set with `settings.query.filter` (e.g. soft-delete's `isDeleted = false`), applies to every query unless you opt out for an admin or maintenance path.
 
 ```typescript
 // Normal query - default filter applies

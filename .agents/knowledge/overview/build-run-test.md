@@ -47,10 +47,8 @@ cd packages/core-server && bun test       # the same suite, without those flags
 ```
 
 Every suite is TypeScript sources under the package's `src/__tests__/`, run directly - no compile
-step for the tests, and `.configs/tsconfig.build.json` keeps them out of `dist/`. `NODE_ENV=test` loads the
-package's `.env.test` automatically. Only `boot` defines a `test` script of its own
-(`NODE_ENV=test bun test --env-file=.env.test`); `make test-boot` runs `bun run test` so that
-script stays the single owner of the package's environment.
+step for the tests, and `.configs/builders/tsconfig.build.json` keeps them out of `dist/`. The make target sets `TEST_ENV` (`NODE_ENV=test`, logs in the gitignored `./app_data`); no
+`.env.test` is committed.
 
 `filter` is the only package with no suite of its own - it is covered indirectly through `kernel`
 and `core`. See [testing](/process/testing.md) for the full list of targets.
@@ -58,11 +56,10 @@ and `core`. See [testing](/process/testing.md) for the full list of targets.
 ## Lint and hooks
 
 ```bash
-make lint             # lint packages/ only (oxlint, naming-convention ESLint, oxfmt --check)
+make lint             # lint packages/ only (oxlint, naming-convention ESLint, bun fmt --check)
 make lint-<package>   # one package, by directory name: make lint-kernel
 make lint-all         # packages and scripts/
-bun scripts/examples.ts check   # examples: artifact index, lint, typecheck (not in make)
-make fmt              # format packages/ (oxfmt); make fmt-<package> for one
+make lint-fix         # fix packages/ and the files no package reaches (bun fmt); make lint-fix-<package> for one
 make purity           # bundle every entry claimed browser-pure, fail on node builtins or globals
 make purity-<package> # one package: inversion, filter, helpers, kernel, connectors, core-worker
 make setup-hooks      # git config core.hooksPath .githooks
@@ -71,7 +68,7 @@ make setup-hooks      # git config core.hooksPath .githooks
 `purity` probes the built `dist/`, so build the package first; the packages with no browser-pure
 entry claimed (`dev-configs`, `boot`, `core`, `core-server`) have a target that just skips.
 
-`.githooks/pre-commit` runs **only** `make lint-all` and `bun scripts/examples.ts check` - nothing else. Purity is a CI gate, run per
+`.githooks/pre-commit` runs **only** `make lint-all` - nothing else. Purity is a CI gate, run per
 package by the release workflow, so a green commit says nothing about it.
 
 ## Gotchas that aren't obvious from reading the code

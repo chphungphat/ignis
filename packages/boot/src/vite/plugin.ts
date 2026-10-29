@@ -23,6 +23,12 @@ export class IgnisArtifactsVitePlugin {
   }
 
   /** `root`: the `src` to scan (default: the one beside the `package.json` of Vite's root). */
+  /** The file a module id names: vite dev adds a query (`?v=<hash>`) to the id of a node_modules file. */
+  static filePathOf(opts: { id: string }): string {
+    const queryAt = opts.id.indexOf('?');
+    return queryAt === -1 ? opts.id : opts.id.slice(0, queryAt);
+  }
+
   static create(opts: { root?: string } = {}): IIgnisVitePlugin {
     let root = opts.root ? resolve(opts.root) : '';
     let groupFiles = new Set<string>();
@@ -34,20 +40,23 @@ export class IgnisArtifactsVitePlugin {
       enforce: 'pre',
       // Pre-bundling would hide `auto` inside a dependency chunk, out of reach of `load`.
       config: () => ({ optimizeDeps: { exclude: ['@venizia/ignis-boot'] } }),
-      configResolved: config => {
+      configResolved: (config) => {
         root ||= ArtifactSources.packageSource({ from: config.root });
         groupFiles = new Set(IgnisArtifactsPlugin.groupDefinitionFiles({ root }));
         classesByFile = IgnisArtifactsPlugin.pinnedClasses({ root, groupFiles: [...groupFiles] });
       },
-      resolveId: id =>
+      resolveId: (id) =>
         id === IgnisArtifactsPlugin.VIRTUAL ? IgnisArtifactsVitePlugin.RESOLVED_VIRTUAL : undefined,
-      load: id => {
+      load: (id) => {
         if (id === IgnisArtifactsVitePlugin.RESOLVED_VIRTUAL) {
           return IgnisArtifactsPlugin.render({ root });
         }
-        return IgnisArtifactsPlugin.AUTO_MODULE.test(id) ? autoModule : undefined;
+        return IgnisArtifactsPlugin.AUTO_MODULE.test(IgnisArtifactsVitePlugin.filePathOf({ id }))
+          ? autoModule
+          : undefined;
       },
-      transform: (code, id) => {
+      transform: (code, moduleId) => {
+        const id = IgnisArtifactsVitePlugin.filePathOf({ id: moduleId });
         const classNames = classesByFile.get(id);
         if (!groupFiles.has(id) && !classNames) {
           return undefined;

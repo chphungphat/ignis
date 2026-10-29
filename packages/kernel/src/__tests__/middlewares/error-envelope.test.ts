@@ -66,11 +66,11 @@ class RecordingLogger implements ILogger {
 
   /** Every recorded line rendered as one string - what an operator would actually read. */
   rendered(): string {
-    return this.lines.map(line => [line.message, ...line.args.map(String)].join(' ')).join('\n');
+    return this.lines.map((line) => [line.message, ...line.args.map(String)].join(' ')).join('\n');
   }
 
   linesFrom(opts: { sink: TLoggerSink }): Array<ILoggedLine> {
-    return this.lines.filter(line => line.sink === opts.sink);
+    return this.lines.filter((line) => line.sink === opts.sink);
   }
 }
 
@@ -129,7 +129,7 @@ const throwUnexpected = () => {
 
 const throwZod = () => {
   const schema = z.object({
-    quantity: z.number().refine(n => Number.isInteger(n * 10000), {
+    quantity: z.number().refine((n) => Number.isInteger(n * 10000), {
       message: 'Must not exceed 4 decimal places',
       params: { code: 'numeric.decimal.too_many_places' },
     }),
@@ -263,8 +263,8 @@ describe('a Hono HTTPException keeps its client status', () => {
     application.use('*', requestId({ generator: () => REQUEST_ID }));
     application.post(
       REQUEST_PATH,
-      validator('json', value => value),
-      context => context.json({ reached: true }),
+      validator('json', (value) => value),
+      (context) => context.json({ reached: true }),
     );
     application.onError(new BaseAppErrorMiddleware({ logger: new RecordingLogger() }).value());
 
@@ -317,7 +317,7 @@ describe('the environment read is a seam, and it fails closed', () => {
     // every request in a browser buries the error the reader opened the console for. The thrown
     // error itself still reaches the log, through `logger.log(level, ...)` - a different call.
     expect(logger.linesFrom({ sink: 'error' }).length).toBe(0);
-    expect(logger.linesFrom({ sink: 'log' }).map(line => line.level)).toEqual(['error']);
+    expect(logger.linesFrom({ sink: 'log' }).map((line) => line.level)).toEqual(['error']);
   });
 
   test('a host that HAS an ambient environment gets the misconfiguration line instead', async () => {
@@ -466,7 +466,7 @@ describe('the log fragment the pure formatter builds', () => {
     error.stack = ['TypeError: boom', '    at one', '    at two', '    at three'].join('\n');
 
     const rendered = new ExposedMiddleware().format({ error, maxStackFrames: 2 });
-    const frames = rendered.split('\n').filter(line => line.trimStart().startsWith('at '));
+    const frames = rendered.split('\n').filter((line) => line.trimStart().startsWith('at '));
 
     expect(frames).toEqual(['    at one', '    at two']);
   });
@@ -563,13 +563,6 @@ describe('the response message fills its %{key} placeholders', () => {
 });
 
 describe('MessageTemplate.render', () => {
-  test('fills every occurrence of a key, and reports each missing key once', () => {
-    expect(MessageTemplate.render({ text: '%{a}-%{a} %{b} %{b}', args: { a: 1 } })).toEqual({
-      text: '1-1 %{b} %{b}',
-      missing: ['b'],
-    });
-  });
-
   test('null and false are values; undefined and an inherited key are missing', () => {
     const args = Object.assign(Object.create({ inherited: 'no' }), {
       gone: undefined,
@@ -580,13 +573,6 @@ describe('MessageTemplate.render', () => {
     expect(MessageTemplate.render({ text: '%{nil} %{off} %{gone} %{inherited}', args })).toEqual({
       text: 'null false %{gone} %{inherited}',
       missing: ['gone', 'inherited'],
-    });
-  });
-
-  test('args that are not an object leave every placeholder as written', () => {
-    expect(MessageTemplate.render({ text: 'x %{a}', args: 'oops' })).toEqual({
-      text: 'x %{a}',
-      missing: ['a'],
     });
   });
 

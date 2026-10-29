@@ -1,4 +1,6 @@
+import type { TIdSchemaType } from '@venizia/ignis-kernel';
 import type { PgSequenceOptions } from 'drizzle-orm/pg-core';
+import type { TBigIntMode } from '../constants';
 
 export type TDataTypeEnricherOptions = {
   defaultValue: Partial<{
@@ -20,7 +22,7 @@ export type TIdEnricherOptions = {
       }
     | {
         dataType: 'big-number';
-        numberMode: 'number' | 'bigint';
+        numberMode: TBigIntMode;
         sequenceOptions?: PgSequenceOptions;
       }
   );
@@ -28,7 +30,7 @@ export type TIdEnricherOptions = {
 
 export type TPrincipalEnricherOptions<
   Discriminator extends string = string,
-  PolymorphicIdType extends 'number' | 'string' = 'number' | 'string',
+  PolymorphicIdType extends TIdSchemaType = TIdSchemaType,
   Nullable extends boolean = false,
   NullableDiscriminator extends boolean = true,
 > = {
@@ -36,7 +38,11 @@ export type TPrincipalEnricherOptions<
   defaultPolymorphic?: string;
   polymorphicIdType: PolymorphicIdType;
   isNullableId?: Nullable;
-  /** `true` (default) leaves the `{discriminator}Type` column nullable; `false` adds `NOT NULL`. */
+  /**
+   * `true` (default) leaves the `{discriminator}Type` column nullable with a `''` default. `false`
+   * makes it `NOT NULL` with no default, so an insert must give the type; a `defaultPolymorphic`
+   * keeps that default.
+   */
   isNullableDiscriminator?: NullableDiscriminator;
 };
 
@@ -47,7 +53,7 @@ export type TTzEnricherOptions = {
 };
 
 export type TUserAuditColumnOpts = {
-  dataType: 'string' | 'number';
+  dataType: TIdSchemaType;
   columnName: string;
   allowAnonymous?: boolean;
 };

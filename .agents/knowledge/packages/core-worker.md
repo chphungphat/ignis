@@ -207,9 +207,9 @@ Both are type-only, so `make purity` stays green - which is why nobody noticed. 
 [gotchas](/conventions/gotchas.md).
 
 So the author-time defence is a `no-restricted-globals` and `no-restricted-imports` block in
-`.configs/eslint.config.mjs` (on top of `namingConventionConfigs`), scoped to `src/**/*.{ts,tsx,mts,cts}` and pinned by
-`src/__tests__/browser-purity.test.ts`, which drives the real tsc and the real ESLint (`-c .configs/eslint.config.mjs`) against
-committed fixtures. `.configs/tsconfig.build.json` still sets `types: []`, which does remove the `Bun`
+`.configs/lints/eslint.config.mjs` (on top of `namingConventionConfigs`), scoped to `src/**/*.{ts,tsx,mts,cts}` and pinned by
+`src/__tests__/browser-purity.test.ts`, which drives the real tsc and the real ESLint (`-c .configs/lints/eslint.config.mjs`) against
+committed fixtures. `.configs/builders/tsconfig.build.json` still sets `types: []`, which does remove the `Bun`
 namespace. `make rebuild` type-checks the production graph **before** cleaning `dist/`.
 
 What no static rule reaches: computed member access (`globalThis['process']`), a variable import
@@ -226,8 +226,8 @@ is for.
 
 ## Gotchas
 
-- **This package dual-builds**, CommonJS and ESM, and the purity gate fails if the `import`
-  condition disappears. It shipped CommonJS only once, and a Vite consumer then needed an
+- **This package ships ES modules only** (`dist/esm`), and the purity gate fails if a claimed
+  sub-path loses its runtime entry. It shipped CommonJS only once, and a Vite consumer then needed an
   `optimizeDeps.include` line per sub-path - see [browser-bff](/examples/browser-bff.md).
 - **`IWorkerMessageScope` is a structural type, not `DedicatedWorkerGlobalScope`.** Not because this
   package lacks `lib.webworker` - `tsconfig.json` sets `lib: ["ES2025", "WebWorker"]` and

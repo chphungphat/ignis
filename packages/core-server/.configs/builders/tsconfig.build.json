@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json.schemastore.org/tsconfig",
+  "extends": "../../tsconfig.json",
+  "exclude": [
+    "../../node_modules",
+    "../../dist",
+    "../../app_data",
+    "../../**/__tests__",
+    "../../**/*.test.ts",
+    "../../**/*.spec.ts"
+  ],
+  "compilerOptions": {
+    "outDir": "../../dist/esm",
+    "declaration": true,
+    "declarationDir": "../../dist/esm"
+  },
+  "tsc-alias": {
+    "resolveFullPaths": true
+  }
+}

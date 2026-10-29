@@ -1,5 +1,5 @@
 name: CI
-run-name: "CI | ${{ github.event_name }} | ${{ github.head_ref || github.ref_name }}"
+run-name: 'CI | ${{ github.event_name }} | ${{ github.head_ref || github.ref_name }}'
 
 # Manual only, by decision. These gates are a full build, seven test suites, lint and the purity
 # probe, and they used to fire on every pull request AND every push to develop - including the
@@ -39,6 +39,15 @@ jobs:
         id: install
         run: bun install
 
+      # The purity engine, the catalog guard and the shared test helpers are `@venizia/dev-configs`, loaded from its dist.
+      - name: Build dev-configs
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: make dev-configs
+
+      - name: Positive controls registry
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: make controls-check
+
       - name: Dependency catalog
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: make catalog-check
@@ -51,6 +60,11 @@ jobs:
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: make vulcan-sync vulcan-doctor
 
+      # The two test steps below must leave nothing in the system temp or in .agents/local/tmp.
+      - name: Temp folders - snapshot
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: bun scripts/checks/tmp-leak/cli.ts snapshot
+
       - name: Browser purity probe
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: make purity-test
@@ -58,6 +72,10 @@ jobs:
       - name: Gate scripts' own tests
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: make test-scripts
+
+      - name: Temp folders - verify
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: bun scripts/checks/tmp-leak/cli.ts verify
 
   build-and-test:
     name: Build, test and lint
@@ -69,12 +87,6 @@ jobs:
         with:
           # The release table is generated from release commits; a shallow clone has none.
           fetch-depth: 0
-
-      # The clean-install gate loads every sub-path under Node as well as Bun.
-      - name: Setup Node.js
-        uses: actions/setup-node@v6.4.0
-        with:
-          node-version: "24"
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -96,17 +108,22 @@ jobs:
       # A published map must resolve without src/ in the tarball, or a Vite app warns once per file.
       - name: Sourcemaps are self-contained
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: make sourcemaps-check
+        run: make build-checks
 
-      # Boots each example that needs no external service and calls its endpoints against the build.
-      - name: Examples smoke
+      # Every example compiles against the built packages: a type a barrel forgot to export breaks one.
+      - name: Examples type-check
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: bun scripts/examples.ts smoke
+        run: make examples-check
 
       # Creates an app from the PACKED @venizia/ignis preset in a temp folder and runs its checks.
       - name: VULCAN preset smoke
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: make preset-smoke
+
+      # Every test below must leave nothing in the system temp or in .agents/local/tmp (verify step).
+      - name: Temp folders - snapshot
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: bun scripts/checks/tmp-leak/cli.ts snapshot
 
       # The make targets own the test flags (BUN_TEST_FLAGS, default --parallel, implies --isolate),
       # so CI and a developer's `make test-<pkg>` run the very same command.
@@ -138,17 +155,16 @@ jobs:
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: make test-core-server
 
+      - name: Temp folders - verify
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: bun scripts/checks/tmp-leak/cli.ts verify
+
       - name: Lint
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: make lint-all
 
-      # The examples are not in make: artifacts, lint and typecheck of every example.
-      - name: Lint - examples
-        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: bun scripts/examples.ts check
-
       # One loop, no allowlist: connectors' known-impure engine clients are waived inside
-      # scripts/purity/manifest.ts, where the release workflow's `make purity-<pkg>` sees them too.
+      # scripts/checks/purity/manifest.ts, where the release workflow's `make purity-<pkg>` sees them too.
       # This step used to carry its own copy of that list, so the two gates could disagree - and did:
       # `make purity-connectors` could never pass, which failed a connectors release outright.
       - name: Browser purity

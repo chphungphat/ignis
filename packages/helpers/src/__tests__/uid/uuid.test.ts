@@ -6,7 +6,7 @@ import { createUuidV5 } from '@/modules/uid/uuid/v5';
 const UUID_SHAPE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 const toHex = (opts: { bytes: Uint8Array }): string =>
-  [...opts.bytes].map(byte => byte.toString(16).padStart(2, '0')).join('');
+  [...opts.bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('');
 
 const nativeSha1 = (opts: { bytes: Uint8Array }): string =>
   new Bun.CryptoHasher('sha1').update(opts.bytes).digest('hex');
@@ -20,7 +20,7 @@ describe('Sha1Digest', () => {
   // 55/56 and 63/64 are where padding needs an extra block: a wrong bound only shows there.
   test.each([0, 1, 3, 55, 56, 57, 63, 64, 65, 119, 120, 1000, 4096])(
     'matches the platform hash on %i bytes',
-    length => {
+    (length) => {
       const bytes = new Uint8Array(length);
       crypto.getRandomValues(bytes);
 
@@ -130,7 +130,7 @@ describe('UuidHelper.v5', () => {
       opts.namespace
         .replaceAll('-', '')
         .match(/../g)
-        ?.map(pair => Number.parseInt(pair, 16)) ?? [],
+        ?.map((pair) => Number.parseInt(pair, 16)) ?? [],
     );
     const hash = new Bun.CryptoHasher('sha1')
       .update(namespaceBytes)
@@ -153,7 +153,11 @@ describe('UuidHelper.v5', () => {
     );
   });
 
-  test('a very long name does not keep its buffer afterwards', () => {
+  // The buffer of a 5 MB name is released by the collector, which frees ArrayBuffer memory on its own schedule: a
+  // single Bun.gc(true) followed by one read failed 1 run in 50 under CPU load (#587). The test therefore waits for
+  // the collector, up to a second, instead of assuming it is done. A generator that KEEPS the buffer never lets the
+  // number fall, so the bound still fails it - after the wait.
+  test('a very long name does not keep its buffer afterwards', async () => {
     // Bun reports ArrayBuffer memory under `external`; `arrayBuffers` stays 0 there.
     const generate = createUuidV5();
     const name = 'x'.repeat(5_000_000);
@@ -163,9 +167,19 @@ describe('UuidHelper.v5', () => {
 
     generate({ namespace: UuidNamespaces.DNS, name });
     generate({ namespace: UuidNamespaces.DNS, name: 'short' });
-    Bun.gc(true);
 
-    expect(process.memoryUsage().external - before).toBeLessThan(5_000_000);
+    const bound = 5_000_000;
+    let growth = Number.POSITIVE_INFINITY;
+    for (let attempt = 0; attempt < 40 && growth >= bound; attempt += 1) {
+      Bun.gc(true);
+      growth = process.memoryUsage().external - before;
+
+      if (growth >= bound) {
+        await Bun.sleep(25);
+      }
+    }
+
+    expect(growth).toBeLessThan(bound);
   });
 
   test('a namespace that is not a UUID is refused', () => {
@@ -248,7 +262,7 @@ describe('UuidHelper.inspect', () => {
     'not-a-uuid',
     '2ed6657d-e927-568b-95e1-2665a8aea6a',
     'zzzzzzzz-e927-568b-95e1-2665a8aea6a2',
-  ])('answers undefined for %p', value => {
+  ])('answers undefined for %p', (value) => {
     expect(uuid.inspect({ value })).toBeUndefined();
   });
 });

@@ -67,13 +67,13 @@ export const postTable = pgTable('Post', {
   title: text('title').notNull(),
 });
 
-@model({ type: 'entity' })
+@model()
 export class User extends ModelFactory.defineEntity({
   table: userTable,
   relations: () => ({ posts: many(postTable, { relationName: 'author' }) }),
 }) {}
 
-@model({ type: 'entity' })
+@model()
 export class Post extends ModelFactory.defineEntity({
   table: postTable,
   relations: () => ({ author: one(userTable) }),
@@ -97,7 +97,7 @@ import { BaseEntity, TRelationConfig } from '@venizia/ignis/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 import { Post } from './post.model';
 
-@model({ type: 'entity' })
+@model()
 export class User extends BaseEntity<typeof User.schema> {
   static override schema = pgTable('User', {
     id: text('id').primaryKey(),
@@ -137,14 +137,14 @@ Write the resolver as an arrow function (`() => [...]`), not a plain array. IGNI
 | `RelationTypes.MANY` (`'many'`) | `many()` | One-to-many | User has many Posts |
 
 > [!NOTE]
-> LoopBack 4 names these `hasMany`/`hasOne`/`belongsTo`. IGNIS uses Drizzle ORM's relation model instead, which has only `one` and `many`. A "belongsTo" relationship is `type: RelationTypes.ONE` - its `fields` (the local foreign key) and `references` (the remote primary key) are read off the table, or written in `metadata`.
+> IGNIS uses Drizzle ORM's relation model, which has only `one` and `many`. A "belongsTo" relationship is `type: RelationTypes.ONE` - its `fields` (the local foreign key) and `references` (the remote primary key) are read off the table, or written in `metadata`.
 
 ### A model with both types
 
 This mirrors `examples/vert`'s `SaleChannelProduct` junction model: one `ONE` relation per foreign key, plus a `MANY` relation elsewhere.
 
 ```typescript
-@model({ type: 'entity' })
+@model()
 export class Post extends BaseEntity<typeof Post.schema> {
   static override schema = postTable;
 

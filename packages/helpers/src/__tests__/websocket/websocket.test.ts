@@ -15,7 +15,7 @@ import {
 import type { IWebSocketServerOptions, IRedisSocketMessage } from '@/modules/socket/websocket';
 import { type IRedisHelper } from '@/modules/redis';
 
-const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** Connect a client and authenticate post-connection; the default authenticateFn mock returns { userId } from the auth data payload. */
 async function connectAndAuth(
@@ -561,7 +561,7 @@ describe('WebSocketServerHelper', () => {
       await connectAndAuth(helper, { clientId: 'client-1', socket });
 
       const calls = socket.send.mock.calls as any[][];
-      const connectedMsg = calls.find(call => {
+      const connectedMsg = calls.find((call) => {
         const parsed = JSON.parse(call[0]);
         return parsed.event === WebSocketEvents.CONNECTED;
       });
@@ -655,7 +655,7 @@ describe('WebSocketServerHelper', () => {
       await wait(10);
 
       const calls = socket.send.mock.calls as any[][];
-      const errorMsg = calls.find(call => {
+      const errorMsg = calls.find((call) => {
         const parsed = JSON.parse(call[0]);
         return parsed.event === WebSocketEvents.ERROR;
       });
@@ -738,7 +738,7 @@ describe('WebSocketServerHelper', () => {
       await wait(10);
 
       const calls = socket.send.mock.calls as any[][];
-      const errorMsg = calls.find(call => {
+      const errorMsg = calls.find((call) => {
         const parsed = JSON.parse(call[0]);
         return parsed.event === WebSocketEvents.ERROR;
       });
@@ -1213,11 +1213,21 @@ describe('WebSocketServerHelper', () => {
       }).not.toThrow();
     });
 
-    test('should clean up user index entry when last client disconnects', () => {
+    // The indexes are private, so the entry itself is read through the bracket: `getClientsByUser` and
+    // `getClientsByRoom` filter through the clients map and cannot tell a kept empty entry from a removed one.
+    // A kept entry is a leak that grows with every user and room that ever connected.
+    test('removes the user and the room entries from the indexes when the last client leaves', () => {
+      const index = helper as unknown as {
+        users: Map<string, Set<string>>;
+        rooms: Map<string, Set<string>>;
+      };
+      expect(index.users.has('user-1')).toBe(true);
+      expect(index.rooms.has(WebSocketDefaults.ROOM)).toBe(true);
+
       helper.onClientDisconnect({ clientId: 'client-1' });
 
-      const userClients = helper.getClientsByUser({ userId: 'user-1' });
-      expect(userClients).toHaveLength(0);
+      expect(index.users.has('user-1')).toBe(false);
+      expect(index.rooms.has(WebSocketDefaults.ROOM)).toBe(false);
     });
 
     test('should preserve other clients of same user', async () => {
@@ -1229,13 +1239,6 @@ describe('WebSocketServerHelper', () => {
       const userClients = helper.getClientsByUser({ userId: 'user-1' });
       expect(userClients).toHaveLength(1);
       expect(userClients[0].id).toBe('client-2');
-    });
-
-    test('should clean up room index entry when last client leaves', () => {
-      helper.onClientDisconnect({ clientId: 'client-1' });
-
-      const roomClients = helper.getClientsByRoom({ room: WebSocketDefaults.ROOM });
-      expect(roomClients).toHaveLength(0);
     });
   });
 
@@ -2152,7 +2155,7 @@ describe('Heartbeat — Application-Level Liveness Check', () => {
     await wait(150);
 
     const closeCalls = socket.close.mock.calls as any[][];
-    const timeoutCall = closeCalls.find(c => c[0] === 4002);
+    const timeoutCall = closeCalls.find((c) => c[0] === 4002);
     expect(timeoutCall).toBeDefined();
     expect(timeoutCall![1]).toBe('Heartbeat timeout');
   });
@@ -2178,7 +2181,7 @@ describe('Heartbeat — Application-Level Liveness Check', () => {
 
     // Server should NOT publish any heartbeat event - clients send heartbeat, server only sweeps
     const publishCalls = mockBunServer.publish.mock.calls as any[][];
-    const heartbeatCall = publishCalls.find(c => {
+    const heartbeatCall = publishCalls.find((c) => {
       try {
         const parsed = JSON.parse(c[1]);
         return parsed.event === WebSocketEvents.HEARTBEAT;

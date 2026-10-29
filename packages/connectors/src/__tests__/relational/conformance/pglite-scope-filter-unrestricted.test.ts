@@ -38,7 +38,7 @@ let currentTenant: TTenantState = 'tenant-a';
 @model({
   type: 'entity',
   settings: {
-    scopeFilter: {
+    access: {
       resolve: () => {
         if (currentTenant === ScopeFilters.UNRESTRICTED) {
           return ScopeFilters.UNRESTRICTED;
@@ -47,7 +47,7 @@ let currentTenant: TTenantState = 'tenant-a';
         return currentTenant == null ? currentTenant : { tenant: currentTenant };
       },
     },
-    defaultFilter: { where: { deletedAt: null } },
+    query: { filter: { where: { deletedAt: null } } },
   },
 })
 class UnrestrictedScopedEntity extends BasePostgresEntity {
@@ -163,7 +163,7 @@ describe('scopeFilter - UNRESTRICTED applies no scope for this call', () => {
     currentTenant = ScopeFilters.UNRESTRICTED;
 
     const rows = await repository.find({ filter: { order: ['id asc'] } });
-    expect(rows.map(row => row.name)).toEqual(['a-active', 'b-active']);
+    expect(rows.map((row) => row.name)).toEqual(['a-active', 'b-active']);
   });
 
   test('findById reaches a row belonging to a tenant other than the caller', async () => {
@@ -250,15 +250,15 @@ describe('scopeFilter - UNRESTRICTED is per-call, not cached', () => {
   test('the resolver flips between UNRESTRICTED and a where clause across consecutive calls', async () => {
     currentTenant = ScopeFilters.UNRESTRICTED;
     const unrestricted = await repository.find({ filter: { order: ['id asc'] } });
-    expect(unrestricted.map(row => row.name)).toEqual(['a-active', 'b-active']);
+    expect(unrestricted.map((row) => row.name)).toEqual(['a-active', 'b-active']);
 
     currentTenant = 'tenant-a';
     const scoped = await repository.find({ filter: { order: ['id asc'] } });
-    expect(scoped.map(row => row.name)).toEqual(['a-active']);
+    expect(scoped.map((row) => row.name)).toEqual(['a-active']);
 
     currentTenant = ScopeFilters.UNRESTRICTED;
     const unrestrictedAgain = await repository.find({ filter: { order: ['id asc'] } });
-    expect(unrestrictedAgain.map(row => row.name)).toEqual(['a-active', 'b-active']);
+    expect(unrestrictedAgain.map((row) => row.name)).toEqual(['a-active', 'b-active']);
   });
 });
 
@@ -267,6 +267,6 @@ describe('scopeFilter - a model without scopeFilter is byte-identical to today',
     currentTenant = null;
 
     const rows = await controlRepository.find({ filter: { order: ['id asc'] } });
-    expect(rows.map(row => row.name)).toEqual(['control-a', 'control-b']);
+    expect(rows.map((row) => row.name)).toEqual(['control-a', 'control-b']);
   });
 });

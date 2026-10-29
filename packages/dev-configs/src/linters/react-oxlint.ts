@@ -1,10 +1,10 @@
 import type { OxlintConfig } from 'oxlint';
 import { BrowserOxlintConfigs } from './browser';
 import { LintIgnore } from './ignore';
+import { JSX_FILES } from './jsx-files';
 import type { IOxlintPresetOptions } from './oxlint';
 
 // This file imports no ESLint package, so a config that only needs the oxlint preset does not load them.
-export const JSX_FILES = ['**/*.jsx', '**/*.tsx'];
 const SOURCE_FILES = ['**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx', '**/*.mts', '**/*.cts'];
 
 /**
@@ -17,7 +17,7 @@ const SOURCE_FILES = ['**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx', '**/*.mts', 
  * `exhaustive-deps` is an error. Takes the same options as `OxlintConfigs`.
  *
  * ```ts
- * // .configs/oxlint.config.mts
+ * // .configs/lints/oxlint.config.mts
  * import { defineConfig } from 'oxlint';
  * import { ReactOxlintConfigs } from '@venizia/dev-configs/linters/oxlint';
  *

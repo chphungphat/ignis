@@ -1,18 +1,22 @@
+import type { TScopeWriteOperation } from '../common/constants';
 import type {
   IdType,
   IExtraOptions,
   IPersistableRepository,
-  IScopeFilterSettings,
+  IModelAccessSettings,
   ITransaction,
   TCount,
+  TByIdFilter,
   TDataRange,
   TDrizzleQueryOptions,
+  TFields,
   TFilter,
   TFindOneOptions,
   TFindOptions,
   TFindRangeOptions,
   TLockOptions,
   TRepositoryOperationScope,
+  TRow,
   TWhere,
 } from '@venizia/ignis-kernel';
 import {
@@ -42,6 +46,7 @@ import type {
   TRelationalTransactionOptionsOf,
 } from '../common';
 import { ScopeFilterDenial } from '../common';
+import { ScopeWriteGuard } from '../common/scope-write-guard';
 
 /** Relational implementation of `AbstractRepository`: adds the query dialect + hidden-column exclusion on top of the neutral base, and reaches the database only through `IRelationalQueryExecutor`. Both engine-facing parameters default to the neutral SQL contracts; an engine binds them by subclassing. */
 export abstract class RelationalBaseRepository<
@@ -158,7 +163,7 @@ export abstract class RelationalBaseRepository<
   }
 
   getDefaultFilter(): TFilter | undefined {
-    return this.modelSettings?.defaultFilter;
+    return this.modelSettings?.query?.filter;
   }
 
   getDefaultLimit(): number | undefined {
@@ -170,13 +175,40 @@ export abstract class RelationalBaseRepository<
     return defaultFilter !== undefined && Object.keys(defaultFilter).length > 0;
   }
 
-  /** Same override seam as `getDefaultFilter()` - a repository with no resolvable `@model` entity (a synthetic test double, a hand-built stub) overrides this to avoid touching `modelSettings`/`entity` at all. */
-  getScopeFilterSettings(): IScopeFilterSettings | undefined {
-    return this.modelSettings?.scopeFilter;
+  /**
+   * The model's `access` settings. Same override seam as `getDefaultFilter()` - a repository with no
+   * resolvable `@model` entity (a synthetic test double, a hand-built stub) overrides this to avoid
+   * touching `modelSettings`/`entity` at all.
+   */
+  getAccessSettings(): IModelAccessSettings | undefined {
+    return this.modelSettings?.access;
   }
 
   /**
-   * Row scope from `@model` settings.scopeFilter - AND-composed like a default filter, but never
+   * Holds written rows to the resolved row scope (`access.write`): refuses a row outside
+   * it, and for `assign` returns copies with the scope columns filled in. Nothing is written when it
+   * throws. Like the read scope, it is not skippable by `shouldSkipDefaultFilter`; a caller that is
+   * trusted to write across scopes resolves to `ScopeFilters.UNRESTRICTED`.
+   */
+  protected guardScopedWrite<Row extends Record<string, unknown>>(opts: {
+    rows: Row[];
+    operation: TScopeWriteOperation;
+  }): Row[] {
+    const settings = this.getAccessSettings();
+    if (!settings) {
+      return opts.rows;
+    }
+
+    return ScopeWriteGuard.apply({
+      settings,
+      model: this.entity.name,
+      rows: opts.rows,
+      operation: opts.operation,
+    });
+  }
+
+  /**
+   * Row scope from `@model` settings.access - AND-composed like a default filter, but never
    * skippable via `shouldSkipDefaultFilter`: that flag serves `restore()`'s deliberate reach past
    * soft-delete, which must not also reach past tenant/ownership scoping.
    *
@@ -188,14 +220,15 @@ export abstract class RelationalBaseRepository<
   protected applyScopeFilter<DO = any>(opts: {
     userFilter?: TFilter<DO>;
     dangerouslySkipScopeFilter?: boolean;
+    mutation?: string;
   }): TFilter<DO> {
-    const { userFilter, dangerouslySkipScopeFilter } = opts;
+    const { userFilter, dangerouslySkipScopeFilter, mutation } = opts;
 
     if (dangerouslySkipScopeFilter) {
       return userFilter ?? {};
     }
 
-    const scopeFilterSettings = this.getScopeFilterSettings();
+    const scopeFilterSettings = this.getAccessSettings();
     if (!scopeFilterSettings) {
       return userFilter ?? {};
     }
@@ -210,7 +243,21 @@ export abstract class RelationalBaseRepository<
     }
 
     if (scopeWhere !== null && scopeWhere !== undefined) {
-      return this.queryDialect.mergeFilter({ defaultFilter: { where: scopeWhere }, userFilter });
+      // A write reaches only the rows it may write: the shared (null) rows a read scope allows need `write.sharedRows`.
+      const effectiveWhere =
+        mutation === undefined
+          ? scopeWhere
+          : ScopeWriteGuard.mutationWhere({
+              settings: scopeFilterSettings,
+              model: this.entity.name,
+              operation: mutation,
+              scopeWhere,
+            });
+
+      return this.queryDialect.mergeFilter({
+        defaultFilter: { where: effectiveWhere },
+        userFilter,
+      });
     }
 
     if (scopeFilterSettings.onMissing === ScopeFilterMissingBehaviors.ALLOW) {
@@ -230,10 +277,16 @@ export abstract class RelationalBaseRepository<
     userFilter?: TFilter<DO>;
     shouldSkipDefaultFilter?: boolean;
     dangerouslySkipScopeFilter?: boolean;
+    /** The name of the write (`update`, `delete`) when the filter selects rows to change: the row scope then leaves out the shared rows unless `write.sharedRows`. */
+    mutation?: string;
   }): TFilter<DO> {
-    const { userFilter, shouldSkipDefaultFilter, dangerouslySkipScopeFilter } = opts;
+    const { userFilter, shouldSkipDefaultFilter, dangerouslySkipScopeFilter, mutation } = opts;
 
-    const scopedFilter = this.applyScopeFilter<DO>({ userFilter, dangerouslySkipScopeFilter });
+    const scopedFilter = this.applyScopeFilter<DO>({
+      userFilter,
+      dangerouslySkipScopeFilter,
+      mutation,
+    });
 
     if (shouldSkipDefaultFilter) {
       return scopedFilter;
@@ -347,7 +400,8 @@ export abstract class RelationalBaseRepository<
     const result = this.queryDialect.build({
       tableName: this.entity.name,
       schema: this.entity.schema,
-      filter: opts.filter,
+      // The dialect reads the filter against the table object; `DataObject` is the same row.
+      filter: opts.filter as TFilter,
     });
 
     if (!this.hasHiddenProperties()) {
@@ -450,26 +504,38 @@ export abstract class RelationalBaseRepository<
     options?: ExtraOptions;
   }): Promise<boolean>;
 
-  abstract override find<R = DataObject>(opts: {
-    filter: TFilter<DataObject>;
-    options: TFindRangeOptions<ExtraOptions, R>;
-  }): Promise<{ data: Array<R>; range: TDataRange }>;
+  abstract override find<
+    R = unknown,
+    const F extends TFields<DataObject> = TFields<DataObject>,
+  >(opts: {
+    filter: TFilter<DataObject, F>;
+    options: TFindRangeOptions<ExtraOptions, TRow<DataObject, R, F>>;
+  }): Promise<{ data: Array<TRow<DataObject, R, F>>; range: TDataRange }>;
 
-  abstract override find<R = DataObject>(opts: {
-    filter: TFilter<DataObject>;
-    options?: TFindOptions<ExtraOptions, R>;
-  }): Promise<R[]>;
+  abstract override find<
+    R = unknown,
+    const F extends TFields<DataObject> = TFields<DataObject>,
+  >(opts: {
+    filter: TFilter<DataObject, F>;
+    options?: TFindOptions<ExtraOptions, TRow<DataObject, R, F>>;
+  }): Promise<Array<TRow<DataObject, R, F>>>;
 
-  abstract override findOne<R = DataObject>(opts: {
-    filter: TFilter<DataObject>;
-    options?: TFindOneOptions<ExtraOptions, R>;
-  }): Promise<TNullable<R>>;
+  abstract override findOne<
+    R = unknown,
+    const F extends TFields<DataObject> = TFields<DataObject>,
+  >(opts: {
+    filter: TFilter<DataObject, F>;
+    options?: TFindOneOptions<ExtraOptions, TRow<DataObject, R, F>>;
+  }): Promise<TNullable<TRow<DataObject, R, F>>>;
 
-  abstract override findById<R = DataObject>(opts: {
+  abstract override findById<
+    R = unknown,
+    const F extends TFields<DataObject> = TFields<DataObject>,
+  >(opts: {
     id: IdType;
-    filter?: Omit<TFilter<DataObject>, 'where'>;
-    options?: TFindOneOptions<ExtraOptions, R>;
-  }): Promise<TNullable<R>>;
+    filter?: TByIdFilter<DataObject, F>;
+    options?: TFindOneOptions<ExtraOptions, TRow<DataObject, R, F>>;
+  }): Promise<TNullable<TRow<DataObject, R, F>>>;
 
   abstract override create(opts: {
     data: PersistObject;

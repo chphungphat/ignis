@@ -17,8 +17,9 @@ bun.lockb
 # Build and Compilation Output
 # These files are generated from source code and don't need to be in version control.
 dist/
-release/
+/release/
 build/
+!/scripts/build/
 app_data/
 *.tsbuildinfo
 .lock-wscript
@@ -52,7 +53,6 @@ coverage/
 .env
 .env.*
 !**/.env.example
-!**/.env.test
 
 # Cryptographic Keys
 *.pem
@@ -120,6 +120,7 @@ node_modules.zip
 # AI Agent — tool-specific configs (local only, never committed)
 .agents/plans
 .agents/specs
+.agents/local/
 
 docs/generate
 
@@ -128,3 +129,4 @@ docs/generate
 
 # Scratch directory a connectors type test creates and removes; left behind if the run is killed.
 packages/connectors/src/__tests__/.type-probe-*/
+.agents/vulcan.local.json

@@ -64,7 +64,7 @@ export const userTable = pgTable('User', {
   lastSeenAt: timestamp('last_seen_at'),
 });
 
-@model({ type: 'entity' })
+@model()
 export class User extends ModelFactory.defineEntity({ table: userTable }) {}
 
 export type TUser = TEntityObject<typeof User>;
@@ -104,7 +104,7 @@ export const roomMemberTable = pgTable('RoomMember', {
   lastReadAt: timestamp('last_read_at'),
 });
 
-@model({ type: 'entity' })
+@model()
 export class Room extends ModelFactory.defineEntity({
   table: roomTable,
   relations: () => ({
@@ -117,7 +117,7 @@ export class Room extends ModelFactory.defineEntity({
   }),
 }) {}
 
-@model({ type: 'entity' })
+@model()
 export class RoomMember extends ModelFactory.defineEntity({
   table: roomMemberTable,
   relations: () => ({
@@ -176,7 +176,7 @@ export const directMessageTable = pgTable('DirectMessage', {
   deletedAt: timestamp('deleted_at'),
 });
 
-@model({ type: 'entity' })
+@model()
 export class Message extends ModelFactory.defineEntity({
   table: messageTable,
   relations: () => ({
@@ -191,7 +191,7 @@ export class Message extends ModelFactory.defineEntity({
   }),
 }) {}
 
-@model({ type: 'entity' })
+@model()
 export class DirectMessage extends ModelFactory.defineEntity({
   table: directMessageTable,
   relations: () => ({
@@ -1072,7 +1072,7 @@ export class ChatApp extends BaseApplication {
 
     // 5. Register the component - that's it!
     //    SocketIOComponent handles:
-    //    - Runtime detection (Node.js / Bun)
+    //    - Wiring the Bun engine
     //    - Post-start hook to create SocketIOServerHelper after server starts
     //    - Redis adapter + emitter setup (automatic)
     //    - Binding SocketIOServerHelper to SOCKET_IO_INSTANCE
@@ -1120,11 +1120,10 @@ preConfigure()
 initialize()
   └── SocketIOComponent.binding()
         ├── resolveBindings() - reads all bound values
-        ├── RuntimeModules.detect() - auto-detect Node.js or Bun
         └── registerPostStartHook('socket-io-initialize')
 
 start()
-  ├── startBunModule() / startNodeModule() - server starts
+  ├── startBunModule() - server starts
   └── executePostStartHooks()
         └── 'socket-io-initialize'
               ├── Create SocketIOServerHelper (with Redis adapter + emitter)
@@ -1509,10 +1508,10 @@ Run multiple instances behind a load balancer - Redis keeps them in sync:
 
 ```bash
 # Instance 1
-APP_ENV_SERVER_PORT=3001 bun run start
+APP_ENV_SERVER_PORT=3001 bun run server:dev
 
 # Instance 2
-APP_ENV_SERVER_PORT=3002 bun run start
+APP_ENV_SERVER_PORT=3002 bun run server:dev
 
 # Both instances share Socket.IO state via Redis
 # Clients on Instance 1 can receive messages from Instance 2
@@ -1549,7 +1548,7 @@ this.bind<RedisSingleHelper>({
 | History | REST API with cursor-based pagination |
 | Authentication | `SocketIOServerHelper` built-in flow (connect → authenticate → authenticated) |
 | Scaling | Redis adapter/emitter - automatic via `RedisSingleHelper` binding |
-| Runtime | Auto-detected (Node.js or Bun) by `SocketIOComponent` |
+| Runtime | Bun, through `@socket.io/bun-engine` |
 
 ## Next Steps
 

@@ -12,7 +12,7 @@ tags: [process, docs, wiki]
    from markdown under `content/`. It lives at top-level `docs/wiki/` (sibling of `packages/`,
    package name `@venizia/ignis-docs`), not inside `packages/`. The MCP server that reads this same
    content is VULCAN's atlas (`@venizia/vulcan-atlas`, run in this repo as
-   `bun x --no-install vulcan x atlas mcp`, registered in `.mcp.json` as `ignis-atlas`) - `docs/wiki`
+   `bun x --no-install vulcan x atlas mcp`, registered as `atlas` in the per-machine `.mcp.json` that `vulcan sync` writes) - `docs/wiki`
    no longer ships one itself. This `.agents/knowledge/` bundle
    (what this file is part of) is a separate, agent-facing artifact - editing one does not update
    the other.
@@ -63,6 +63,17 @@ tags: [process, docs, wiki]
    `docs/wiki/package.json`'s `files` ships `content/` (minus `changelogs/`) plus `README.md` and
    `LICENSE.md` directly. Confirm the current publish path before assuming this playbook covers
    `docs/wiki`.
+
+9. The theme folder `docs/wiki/site/.vitepress/theme/shared/` is **not edited here**. It is a
+   byte-identical copy of VULCAN's wiki folder, shared by the IGNIS, ARDOR and VULCAN wikis; its
+   `SHARED.json` holds the hash of every file. Change it in VULCAN (the canonical copy), then run
+   from this repository's root, with VULCAN checked out next to it:
+   `bun ../vulcan/scripts/wiki-shared/copy.ts . --dry-run`, then without `--dry-run`, then
+   `bun ../vulcan/scripts/wiki-shared/check.ts .`. `scripts/checks/__tests__/wiki-shared.test.ts`
+   (copied by hand, identical in the three repos) fails on a hand edit or an unlisted file and when a
+   VitePress piece the shared CSS overrides is gone. `.gitattributes` marks the folder `-text` so git
+   converts no byte. Keep `bun fmt` off it: `make lint-wiki` still checks it. What stays ours:
+   `product.css`, `home-content.ts`, `design-tokens.css`, `theme/index.ts`, `config.mts`.
 
 ## Related
 

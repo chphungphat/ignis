@@ -1,9 +1,9 @@
 # The shared build and lint targets of one package. A package Makefile sets the variables below
 # and includes this file.
 #
-#   FORMATS      cjs esm (default) | cjs | plain - which outputs `build` emits
-#   CJS_TSCONFIG the program the CJS pass emits (default .configs/tsconfig.build.json)
-#   CJS_OUT      where the CJS pass lands (default dist/cjs); empty: the tsconfig's own outDir
+#   FORMATS      esm (default) | plain - which output `build` emits: ES modules in dist/esm, or tsc's own
+#                outDir from tsconfig.json
+#   ESM_TSCONFIG the program the ESM pass emits (default .configs/builders/tsconfig.build.json)
 #   POST_BUILD   a shell step only this package has, run after the emit
 #
 # Every tool comes from the package's node_modules/.bin, by absolute path: a recipe never depends on
@@ -20,27 +20,26 @@ TYPECHECK := bun check --no-pretty
 TSC_ALIAS := $(BIN)/tsc-alias
 ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/..)
 
-FORMATS ?= cjs esm
-CJS_TSCONFIG ?= .configs/tsconfig.build.json
-CJS_OUT ?= dist/cjs
-ESM_TSCONFIG := .configs/tsconfig.esm.json
+FORMATS ?= esm
+ESM_TSCONFIG ?= .configs/builders/tsconfig.build.json
 
-# The programs `build` emits, each type-checked before `rebuild` deletes dist: the ESM program swaps
-# module/moduleResolution and can fail where the CJS one passed, and one that fails after clean
-# leaves a dist with cjs/ and no esm/.
-EMIT_TSCONFIGS := $(if $(filter cjs,$(FORMATS)),$(CJS_TSCONFIG)) $(if $(filter esm,$(FORMATS)),$(ESM_TSCONFIG))
+# The program `build` emits, type-checked before `rebuild` deletes dist: one that fails after clean
+# leaves an empty dist, which looks like a hundred unrelated import failures downstream.
+EMIT_TSCONFIGS := $(if $(filter esm,$(FORMATS)),$(ESM_TSCONFIG))
 
-FMT_GLOB := "**/*.{ts,mts,tsx,js,mjs}"
+# The code and every JSON, YAML, CSS, HTML and Vue file (package.json keys are sorted); not Markdown.
+FMT_GLOB := "**/*.{ts,mts,tsx,js,mjs,json,jsonc,yml,yaml,css,html,vue}"
+# bun fmt reads [fmt] from the root bunfig.toml; --no-script keeps a package.json "fmt" script from taking over.
+BUN_FMT_FLAGS := --no-script
 
 # Paths this package must not lint or format, relative to the package - generated files, bundles:
-#   LINT_IGNORE := src/_build_info.ts dev-dist/** public/**
+#   LINT_IGNORE := src/generated.ts dev-dist/** public/**
 # Set it in the package Makefile before the include. `ignorePatterns` inside .configs/ cannot do this:
 # they resolve against .configs/ and match nothing.
 LINT_IGNORE ?=
 LINT_IGNORE_FLAGS = $(foreach glob,$(LINT_IGNORE),--ignore-pattern "$(glob)")
-FMT_IGNORE_GLOBS = $(foreach glob,$(LINT_IGNORE),"!$(glob)")
 
-.PHONY: build typecheck clean rebuild lint fmt
+.PHONY: build typecheck clean rebuild lint lint-fix
 
 # tsconfig.json covers the tests too, so a broken test fails here, before anything is emitted.
 typecheck:
@@ -55,16 +54,11 @@ build:
 ifneq ($(filter plain,$(FORMATS)),)
 	@$(TSC) -p tsconfig.json --extendedDiagnostics
 endif
-ifneq ($(filter cjs,$(FORMATS)),)
-	@echo ">>> Building CJS..."
-	@$(TSC) -p $(CJS_TSCONFIG) --extendedDiagnostics
-	@$(TSC_ALIAS) -p tsconfig.json $(if $(CJS_OUT),--outDir $(CJS_OUT))
-endif
 ifneq ($(filter esm,$(FORMATS)),)
 	@echo ">>> Building ESM..."
 	@$(TSC) -p $(ESM_TSCONFIG) --extendedDiagnostics
 	@$(TSC_ALIAS) -p tsconfig.json --outDir dist/esm --resolve-full-paths
-	@bun $(ROOT)/scripts/esm-marker.ts
+	@bun $(ROOT)/scripts/build/esm-marker.ts
 endif
 	$(if $(POST_BUILD),@$(POST_BUILD))
 	@echo "DONE | Build completed successfully!"
@@ -72,7 +66,7 @@ endif
 # A stale .tsbuildinfo next to a .configs/ tsconfig makes tsc think it is up to date and emit
 # nothing - a "DONE" build with an empty dist.
 clean:
-	@rm -rf dist *.tsbuildinfo .configs/*.tsbuildinfo
+	@rm -rf dist *.tsbuildinfo .configs/builders/*.tsbuildinfo
 
 # Type-check before cleaning: a failure after clean leaves an empty dist, which looks like a hundred
 # unrelated import failures downstream.
@@ -80,11 +74,11 @@ rebuild: typecheck clean
 	@$(MAKE) --no-print-directory build
 
 lint:
-	@$(BIN)/oxlint -c .configs/oxlint.config.mts --deny-warnings $(LINT_IGNORE_FLAGS) .
-	@$(BIN)/eslint -c .configs/eslint.config.mjs $(LINT_IGNORE_FLAGS) .
-	@$(BIN)/oxfmt -c .configs/oxfmt.config.mts --check $(FMT_GLOB) $(FMT_IGNORE_GLOBS)
+	@$(BIN)/oxlint -c .configs/lints/oxlint.config.mts --deny-warnings $(LINT_IGNORE_FLAGS) .
+	@$(BIN)/eslint -c .configs/lints/eslint.config.mjs $(LINT_IGNORE_FLAGS) .
+	@bun fmt $(BUN_FMT_FLAGS) --check $(FMT_GLOB) $(LINT_IGNORE_FLAGS)
 
-fmt:
-	@$(BIN)/oxlint -c .configs/oxlint.config.mts --fix $(LINT_IGNORE_FLAGS) .
-	@$(BIN)/eslint -c .configs/eslint.config.mjs --fix $(LINT_IGNORE_FLAGS) .
-	@$(BIN)/oxfmt -c .configs/oxfmt.config.mts $(FMT_GLOB) $(FMT_IGNORE_GLOBS)
+lint-fix:
+	@$(BIN)/oxlint -c .configs/lints/oxlint.config.mts --fix $(LINT_IGNORE_FLAGS) .
+	@$(BIN)/eslint -c .configs/lints/eslint.config.mjs --fix $(LINT_IGNORE_FLAGS) .
+	@bun fmt $(BUN_FMT_FLAGS) $(FMT_GLOB) $(LINT_IGNORE_FLAGS)

@@ -1,3 +1,3 @@
+# Keeps this package's test run out of the system temp: see scripts/test-setup/tmpdir.ts.
 [test]
-# Tests live in src; vulcan-preset/ holds the generated app's own test.
-root = "src"
+preload = ["../../scripts/test-setup/tmpdir.ts"]

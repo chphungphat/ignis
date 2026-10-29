@@ -61,7 +61,7 @@ describe('ArtifactIndexEmitter', () => {
     expect(content.indexOf('configurations:')).toBeLessThan(content.indexOf('dataSources:'));
   });
 
-  test('a field wider than the prettier print width wraps one name per line with trailing commas', () => {
+  test('a field wider than the print width wraps one name per line with trailing commas', () => {
     const names = Array.from(
       { length: 6 },
       (_, index) => `VeryLongRepositoryNameNumber${index}Repository`,
@@ -70,11 +70,11 @@ describe('ArtifactIndexEmitter', () => {
       outFile: join(ROOT, 'generated', 'artifacts.ts'),
       exportName: 'GeneratedArtifacts',
       command: { root: 'src', out: 'src/generated/artifacts.ts' },
-      artifacts: names.map(name => artifact('repository', name, `repositories/${name}.ts`)),
+      artifacts: names.map((name) => artifact('repository', name, `repositories/${name}.ts`)),
     });
 
     expect(content).toContain(
-      ['  repositories: [', ...names.map(name => `    ${name},`), '  ],'].join('\n'),
+      ['  repositories: [', ...names.map((name) => `    ${name},`), '  ],'].join('\n'),
     );
     expect(content).toContain('  services: [],');
   });

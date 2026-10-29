@@ -180,9 +180,9 @@ export class AuthorizationPolicyVariants {
     this.ACTION_INHERITS,
   ] as const;
 
-  static readonly ACTION_SCHEME_SET = new Set(this.ALL.map(variant => variant.action.toString()));
+  static readonly ACTION_SCHEME_SET = new Set(this.ALL.map((variant) => variant.action.toString()));
 
-  static readonly RULE_SCHEME_SET = new Set(this.ALL.map(variant => variant.rule.toString()));
+  static readonly RULE_SCHEME_SET = new Set(this.ALL.map((variant) => variant.rule.toString()));
 
   static isValidAction(input: string): boolean {
     return this.ACTION_SCHEME_SET.has(input);
@@ -196,3 +196,20 @@ export class AuthorizationPolicyVariants {
 /** The `variant` column's full value set, derived from {@link AuthorizationPolicyVariants.ALL} - never hand-list the seven strings again. */
 export type TAuthorizationPolicyVariant =
   (typeof AuthorizationPolicyVariants.ALL)[number]['action'];
+
+/** Where an `IAuthorizationDomainSource` reads the request domain from. */
+export class AuthorizationDomainSources {
+  static readonly PARAM = 'param';
+  static readonly HEADER = 'header';
+  static readonly QUERY = 'query';
+  static readonly CONTEXT = 'context';
+
+  static readonly SCHEME_SET = new Set<string>([this.PARAM, this.HEADER, this.QUERY, this.CONTEXT]);
+
+  static isValid(value: string): boolean {
+    return this.SCHEME_SET.has(value);
+  }
+}
+
+/** Valid authorization domain source values. */
+export type TAuthorizationDomainSource = TConstValue<typeof AuthorizationDomainSources>;

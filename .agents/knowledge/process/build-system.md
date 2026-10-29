@@ -42,38 +42,38 @@ tags: [process, build]
    `test-`, `purity-`, `clean-install-<pkg>`) is generated from `PACKAGES`, so a new package needs only
    that list and, for `make <pkg>`, its line in the dependency graph in `build.mk`. Every package has a
    `Makefile` that sets a few variables and includes `make/project.mk`, which defines `typecheck`,
-   `build`, `clean`, `rebuild`, `lint` and `fmt`. `rebuild` is `typecheck`, then `clean`, then
+   `build`, `clean`, `rebuild`, `lint` and `lint-fix`. `rebuild` is `typecheck`, then `clean`, then
    `build`. The type-check comes first on purpose - see step 6. The package `package.json` no
    longer has `build`, `clean`, `rebuild` or `typecheck` scripts; only `prepublishOnly` (`make
-   rebuild`), `force-update` and, for `boot`, `test`. Examples keep their own scripts.
-5. The Makefile variables are `FORMATS` (`cjs esm` by default, `cjs` or `plain`), `CJS_TSCONFIG`
-   (default `.configs/tsconfig.build.json`), `CJS_OUT` (default `dist/cjs`; empty means the
-   tsconfig's own `outDir`) and `POST_BUILD` (a package-only shell step after the emit).
-   `dev-configs` is `plain`; `core-server` is `cjs` with `CJS_OUT := dist`; `filter` sets `CJS_TSCONFIG := tsconfig.json` and an empty
-   `CJS_OUT`; `boot` sets `POST_BUILD := chmod +x dist/cjs/clis/*.js`. The rest build `cjs esm`.
+   rebuild`), `force-update` (the shared `scripts/build/force-update.sh`) and, for `boot` and `core-server`, `test` (`bun test ./src`). Examples keep their own scripts.
+5. The Makefile variables are `FORMATS` (`esm` by default, or `plain`), `ESM_TSCONFIG`
+   (default `.configs/builders/tsconfig.build.json`) and `POST_BUILD` (a package-only shell step
+   after the emit). `dev-configs` is `plain` (`tsc` on `tsconfig.json`, output in `dist/`); `boot`
+   sets `POST_BUILD := chmod +x dist/esm/clis/*.js`. Every other package builds `esm`, and `core-server`
+   and `filter` have a Makefile that only includes `make/project.mk`.
    `build` runs `bun check -p tsconfig.json` first (type-checks `src` AND `src/__tests__`; same
    diagnostics as `tsc --noEmit`, about 10x faster), then
-   the CJS pass: `tsc` on the CJS tsconfig (which excludes `__tests__`, `*.test.ts`, `*.spec.ts`)
-   and `tsc-alias -p tsconfig.json` (the ROOT tsconfig, never a `.configs/` one) to rewrite path
-   aliases. Every ESM pass runs `tsc -p .configs/tsconfig.esm.json`, then `tsc-alias` with
-   `--resolve-full-paths` (so `dist/esm` imports carry `.js` and load under Node's ESM loader) and
-   then `bun ../../scripts/esm-marker.ts`, which writes `dist/esm/package.json` with
-   `"type": "module"` and the package's `sideEffects` re-rooted - without it Node parses every file
-   as CommonJS first (measured on `connectors/http`: 38.0 -> 30.7 ms). Then `POST_BUILD`, then
+   the one build program: `tsc -p .configs/builders/tsconfig.build.json` (ESNext modules, `bundler`
+   resolution, output in `dist/esm`, tests excluded: `__tests__`, `*.test.ts`, `*.spec.ts`), then
+   `tsc-alias -p tsconfig.json` (the ROOT tsconfig, never a `.configs/` one) with
+   `--resolve-full-paths` (so `dist/esm` imports carry `.js`), and then
+   `bun ../../scripts/build/esm-marker.ts`, which writes `dist/esm/package.json` with
+   `"type": "module"` and the package's `sideEffects` re-rooted - so a bundler and TypeScript (a
+   `nodenext` consumer reading the `.d.ts` files) treat everything there as ES modules. Then `POST_BUILD`, then
    `DONE | Build completed successfully!`. Every tool is called by absolute path from the package's
    `node_modules/.bin`, so a recipe never depends on `PATH`. `clean` removes `dist`,
-   `*.tsbuildinfo` and `.configs/*.tsbuildinfo`. A package that must skip paths in `lint`/`fmt`
-   (generated files, bundles) sets `LINT_IGNORE := src/_build_info.ts dev-dist/**` before the include:
-   `--ignore-pattern` for oxlint and ESLint, `"!<glob>"` for oxfmt, all resolved from the package root
+   `*.tsbuildinfo` and `.configs/builders/*.tsbuildinfo`. A package that must skip paths in `lint`/`lint-fix`
+   (generated files, bundles) sets `LINT_IGNORE := src/generated.ts dev-dist/**` before the include:
+   `--ignore-pattern` for oxlint and ESLint, `--ignore-pattern` for `bun fmt` too, all resolved from the package root
    (`ignorePatterns` inside `.configs/` would resolve against `.configs/` and match nothing). No package ships its
    tests in `dist` - they stay sources under `src/__tests__/` that `bun test` runs directly. A
    package that emits them into `dist` makes a bare `bun test` execute every test once per copy -
-   `inversion` reported 111 for 37 tests until its `.configs/tsconfig.build.json` excluded them.
+   `inversion` reported 111 for 37 tests until its `.configs/builders/tsconfig.build.json` excluded them.
 6. Make stops a recipe at the first failing command, and every package's tsconfig inherits
    `noEmitOnError: true` from `packages/dev-configs/src/tsconfig/tsconfig.base.json`. A type error
    anywhere aborts the build and the closing `DONE | Build completed successfully!` never prints.
    `rebuild` runs `typecheck` *before* `clean`, and `typecheck` covers `tsconfig.json` plus every
-   program `build` emits (the CJS and the ESM tsconfig). So a failure leaves the previous `dist/`
+   program `build` emits (`.configs/builders/tsconfig.build.json`). So a failure leaves the previous `dist/`
    intact instead of emptying it - that ordering is what closes the empty-`dist/` trap. There is
    no exception: `dev-configs` (`FORMATS := plain`) type-checks `tsconfig.json` first like every
    package. Do not trust a scrollback that got truncated; if a build's success is in doubt, rerun
@@ -81,7 +81,7 @@ tags: [process, build]
 7. Gotcha: the type-check pass covers `src/__tests__/` too, even though those tests never ship in
    `dist`. A type error in a test file blocks the build of production code that never touches it -
    in both `rebuild` and `build`, for every package.
-8. `make purity` bundles every entry in `scripts/purity/manifest.ts` with
+8. `make purity` bundles every entry in `scripts/checks/purity/manifest.ts` with
    `bun build --target=browser` and fails on node builtins or node globals (`process.`,
    `__dirname`, `__filename`, `createRequire`). Six packages claim a browser-pure surface:
    `inversion`, `filter`, `helpers` (`/core` and `/common` only), `kernel`, `core-worker` and
@@ -96,28 +96,27 @@ tags: [process, build]
    `builtinModules`, so a bare `fs` import is caught as well as `node:fs`. And it passes
    `--env=disable`, because Bun otherwise inlines `process.env.NODE_ENV` at compile time and erases
    the exact read the gate exists to catch.
-10. `make lint` / `make lint-all` (packages only vs. packages + scripts) do not build
+10. `make lint` / `make lint-all` (packages only vs. packages + scripts + `lint-files` for the root package.json, `.github`, `.agents`, `.configs`, the preset templates and the examples + `lint-wiki`) do not build
     anything - run them after a build, not instead of one. `make lint-<package>` takes the directory
     name (`lint-kernel`): it `cd`s into the package and runs its own `node_modules/.bin/oxlint`,
-    `eslint` and `oxfmt --check`, each with `-c .configs/<tool>.config.mts`. `make fmt` and
-    `make fmt-<package>` do the same with fixes. `make lint-wiki` lints `docs/wiki/scripts` and
-    format-checks the wiki. Packages carry no lint scripts in `package.json`; examples keep
-    `lint` and `lint:fix` because they are templates a consumer copies. make does not drive the
-    examples: `bun scripts/examples.ts check` runs the artifact index, lint and typecheck of every
-    example, and `bun scripts/examples.ts smoke` the smoke tests that need no external service. Each project lists
-    `eslint`, `oxlint`, `oxlint-tsgolint` and `oxfmt` in its own `devDependencies` (`catalog:`);
-    the root declares `oxfmt` and `@venizia/dev-configs` for `scripts/`, and `@venizia/vulcan` for the
+    `eslint` and `bun fmt --no-script --check` (oxlint and ESLint take `-c .configs/<tool>.config.mts`; `bun fmt` reads the root `bunfig.toml` `[fmt]`). `make lint-fix` and
+    `make lint-fix-<package>` do the same with fixes. `make lint-wiki` lints `docs/wiki/scripts` and
+    format-checks the wiki. Packages carry no lint scripts in `package.json`; apps (the
+    examples and the VULCAN preset) carry the app script standard in step 13. make does not drive the
+    examples; each one runs its own `bun run lint`, `bun run typecheck` and `bun test` from its folder. Each project lists
+    `eslint`, `oxlint` and `oxlint-tsgolint` in its own `devDependencies` (`catalog:`);
+    the root declares `@venizia/dev-configs` for `scripts/`, and `@venizia/vulcan` for the
     knowledge, atlas and agent tooling. Versions are pinned in
     the root `workspaces.catalog`. Type-aware oxlint on `packages/kernel` (253 files) took about
-    0.8s against 8.16s for ESLint; oxfmt 0.06s against 2.16s for Prettier.
+    0.8s against 8.16s for ESLint.
     `--report-unused-disable-directives` is not used: oxlint does not run the naming rule, so it
     would flag every naming-convention disable comment as unused.
 11. Repository scripts under `scripts/` are TypeScript run by Bun with no build; `scripts/tsconfig.json`
     (bun types, bundler resolution, `noEmit`) is what the editor and `make lint-scripts` check - that
-    target runs oxlint, oxfmt and `tsc -p scripts/tsconfig.json` and is part of `make lint-all`.
-    `make test-scripts` runs their unit tests (`scripts/__tests__`, positive and negative case per gate).
+    target runs oxlint, `bun fmt` and `tsc -p scripts/tsconfig.json` and is part of `make lint-all`.
+    `make test-scripts` runs their unit tests (the `__tests__` directories under each `scripts/<group>/`, positive and negative case per gate).
 12. `make clean-install` packs every package and installs each one alone into an empty project
-    under `tmpdir()`, with its required peers plus the peers `scripts/clean-install/manifest.ts`
+    under the system `tmpdir()` (the one gate that does not use the repository's `.agents/local/tmp`), with its required peers plus the peers `scripts/checks/clean-install/manifest.ts`
     grants a sub-path. It does not build, and it refuses to start when its result could be wrong:
     - a package's newest `src/` file (outside `__tests__`) is newer than its newest `dist/` file -
       run `make build` first. The stamp is the whole `dist/`, not `index.js`, because the build is
@@ -126,13 +125,33 @@ tags: [process, build]
       `~/.node_libraries` exists - any of them would satisfy a missing peer;
     - a non-private package has no claim - a config-only package such as `dev-configs` carries an
       explicit `configOnly` claim and gets no row;
-    - a browser-claimed ESM entry (from `scripts/purity/manifest.ts`) matches no row, which would
-      skip its browser build. The CJS entries never match by design.
+    - a browser-claimed ESM entry (from `scripts/checks/purity/manifest.ts`) matches no row, which would
+      skip its browser build.
 
     After each install it also checks every `@venizia/*` entry in the sandbox `bun.lock` resolves to
     the packed tarball, not the registry. One blind spot remains: a granted peer brings its own
     required peers (granting `@hono/zod-openapi` also installs `hono`), so the gate cannot see a
     leak of such a transitive peer into the entry it was granted to.
+13. **Apps share one script standard**, backend or frontend: the examples and the app preset of
+    `presets/app`. `server:dev` runs the app (`NODE_ENV=development bun run
+    src/index.ts`, or the Vite dev server), `compile` is `sh scripts/compile.sh`, `typecheck` is
+    `bun check`, `lint` and `lint:fix` are `devz lint [--fix]`, `test` is `bun test` and `clean`
+    is `sh scripts/clean.sh`. There is no `dev`, `start`, `build`, `rebuild`, `preview`, `server:prod` or
+    `compile:linux`; domain extras (`migrate:dev`, `seed:authz`, `generate`) stay beside them. The logic
+    lives in `scripts/*.sh` (POSIX `sh`, `set -eu`, run with `sh`). A backend `compile` runs
+    `compile.ts`: `BunCompiler.compile` with `define: await BuildInfoStamp.define()` writes
+    `dist/bin` (the target comes from `BUN_TARGET`), and `src/index.ts` calls `await
+    BuildInfoStamp.register()`, so `@venizia/ignis-boot` is a runtime dependency. `tsconfig.json`
+    includes `scripts` and uses `module: preserve` with `moduleResolution: bundler`: under `nodenext` a
+    package without `"type": "module"` is CommonJS and `compile.ts` cannot use top-level `await`
+    (TS1309). Because imports are hoisted, a binary registers its logger provider
+    (`LoggerFactory.use`) before the module that builds the application, or the build already logs
+    and throws. `make preset-smoke` runs typecheck, lint, test and compile on a generated app, checks
+    the stamp is inside `dist/bin`, calls `/api/hello` on the binary and checks `clean` removes `dist`.
+
+`make examples-check` type-checks every example (`tsc --noEmit` per `examples/*/tsconfig.json`) against the built
+packages and reports every failing example before it fails; CI runs it after `make build-all` and the workspace
+bin link. Lint only format-checks the examples, so a type a package forgot to export breaks here first.
 
 ## Related
 

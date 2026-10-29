@@ -20,15 +20,15 @@ tags: [process, git, contributing]
    `docs`, `chore`, `refactor`, `test`) after the issue number. A commit that serves several issues it
    cannot be split between lists each: `[#42][#44] ...`. The repository is public, so an issue
    describes the framework defect, never a consumer's internals.
-4. Before committing, run `make fmt` and `make build` to catch style and type issues early.
+4. Before committing, run `make lint-fix` and `make build` to catch style and type issues early.
    Packages have no `lint` or `lint:fix` script; the Makefile runs each package's own oxlint, ESLint
-   and oxfmt (`make fmt-<package>` for one). `make lint-all` is the check-only equivalent (`bun scripts/examples.ts check` for the examples), and the pre-commit hook (below)
+   and `bun fmt` (`make lint-fix-<package>` for one). `make lint-all` is the check-only equivalent (an example runs its own `bun run lint` in its folder), and the pre-commit hook (below)
    will block a commit that fails lint anyway.
 5. If git hooks aren't wired up yet, run `make setup-hooks` once - it runs `git config
    core.hooksPath .githooks`, pointing git at the repo's `.githooks/` directory instead of
    `.git/hooks/`.
 6. `.githooks/pre-commit` then runs on every commit: it `cd`s to the repo root and runs `make
-   lint-all` (packages and `scripts/`) and `bun scripts/examples.ts check` (the examples) under
+   lint-all` (packages and `scripts/`) under
    `set -e` - any failure aborts the commit before it is created. Those are the hook's only checks. The browser purity gates (`make purity`) are NOT
    wired into it - they run only in the manually triggered release workflow (see
    [release and publish](/process/release-publish.md)), so run purity by hand after a build if you

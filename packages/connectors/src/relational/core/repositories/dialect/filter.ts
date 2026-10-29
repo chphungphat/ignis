@@ -1,6 +1,6 @@
 import { toSafeEcho } from '@/common/internal';
 import type {
-  IScopeFilterSettings,
+  IModelAccessSettings,
   TDrizzleQueryOptions,
   TFields,
   TFilter,
@@ -251,19 +251,19 @@ export abstract class FilterBuilder extends BaseHelper {
       opts.modelEntry ??
       this.resolveModelEntry({ schema: opts.schema, methodName: 'resolveDefaultFilter' });
 
-    return modelEntry?.metadata?.settings?.defaultFilter;
+    return modelEntry?.metadata?.settings?.query?.filter;
   }
 
   /** Resolves row-scope settings for a schema from MetadataRegistry - the relation's OWN `@model` entry, never the parent's. */
   resolveScopeFilter(opts: {
     schema: TTableSchemaWithId;
     modelEntry?: TResolvedModelEntry;
-  }): IScopeFilterSettings | undefined {
+  }): IModelAccessSettings | undefined {
     const modelEntry =
       opts.modelEntry ??
       this.resolveModelEntry({ schema: opts.schema, methodName: 'resolveScopeFilter' });
 
-    return modelEntry?.metadata?.settings?.scopeFilter;
+    return modelEntry?.metadata?.settings?.access;
   }
 
   /**
@@ -274,7 +274,7 @@ export abstract class FilterBuilder extends BaseHelper {
    */
   private applyRelationScopeFilter(opts: {
     userFilter?: TFilter;
-    scopeFilterSettings?: IScopeFilterSettings;
+    scopeFilterSettings?: IModelAccessSettings;
   }): TFilter {
     const { userFilter, scopeFilterSettings } = opts;
 
@@ -312,7 +312,7 @@ export abstract class FilterBuilder extends BaseHelper {
       opts.modelEntry ??
       this.resolveModelEntry({ schema: opts.schema, methodName: 'resolveDefaultLimit' });
 
-    return modelEntry?.metadata?.settings?.defaultLimit;
+    return modelEntry?.metadata?.settings?.query?.limit?.default;
   }
 
   /** Resolves relation configurations for a schema from MetadataRegistry. Memoized per schema. */
@@ -718,7 +718,7 @@ export abstract class FilterBuilder extends BaseHelper {
       return false;
     }
 
-    return keys.every(key => QueryOperators.isValid(key));
+    return keys.every((key) => QueryOperators.isValid(key));
   }
 
   /**
@@ -794,7 +794,7 @@ export abstract class FilterBuilder extends BaseHelper {
     const { key, value, tableName, schema } = opts;
 
     const clauses = (Array.isArray(value) ? value : [value])
-      .map(inner => this.toWhere({ tableName, schema, where: inner }))
+      .map((inner) => this.toWhere({ tableName, schema, where: inner }))
       .filter((c): c is SQL => !!c);
 
     if (clauses.length === 0) {
@@ -863,7 +863,7 @@ export abstract class FilterBuilder extends BaseHelper {
         MEMBERSHIP_OPERATORS.has(op) &&
         Array.isArray(operand) &&
         operand.length > 0 &&
-        operand.every(entry => typeof entry === 'number')
+        operand.every((entry) => typeof entry === 'number')
       ) {
         return true;
       }

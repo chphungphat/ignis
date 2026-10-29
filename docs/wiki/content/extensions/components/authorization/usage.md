@@ -120,12 +120,13 @@ See [gRPC Controllers](/guides/core-concepts/grpc-controllers) for the full deco
 
 ```typescript
 import { authorize, authenticate, Authentication, AuthorizationActions } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 
 app.delete(
   '/articles/:id',
   authenticate({ strategies: [Authentication.STRATEGY_JWT] }),
   authorize({ spec: { action: AuthorizationActions.DELETE, resource: 'Article' } }),
-  c => c.json({ deleted: true }),
+  context => context.json({ deleted: true }, HTTP.ResultCodes.RS_2.Ok),
 );
 ```
 
@@ -203,7 +204,7 @@ authorize: { action: AuthorizationActions.DELETE, resource: 'Article', allowedRo
 
 ## CRUD factory integration
 
-**Apply to every generated route.** Set `authorize` at the controller level in `defineCrudController`.
+**Apply to every generated route.** Set `authorize` at the controller level in `defineCrudController`. A write route (`create`, `updateById`, `updateBy`, `deleteById`, `deleteBy`) must not inherit a `read` spec, so give each write route its own, or make the controller `readonly`.
 
 ```typescript
 import { AuthorizationActions } from '@venizia/ignis';
@@ -214,8 +215,18 @@ ControllerFactory.defineCrudController({
   controller: { name: 'ArticleController', basePath: '/articles' },
   authenticate: { strategies: [Authentication.STRATEGY_JWT] },
   authorize: { action: AuthorizationActions.READ, resource: 'Article' },
+  routes: {
+    create: { authorize: { action: AuthorizationActions.CREATE, resource: 'Article' } },
+    updateById: { authorize: { action: AuthorizationActions.UPDATE, resource: 'Article' } },
+    updateBy: { authorize: { action: AuthorizationActions.UPDATE, resource: 'Article' } },
+    deleteById: { authorize: { action: AuthorizationActions.DELETE, resource: 'Article' } },
+    deleteBy: { authorize: { action: AuthorizationActions.DELETE, resource: 'Article' } },
+  },
 });
 ```
+
+> [!WARNING] A write route cannot inherit a `read` authorize
+> `defineCrudController` throws at boot when an enabled write route would inherit a controller-level spec whose action is `read` (every spec, for an array). The error names the controller and the routes. Declare `routes.<route>.authorize` (a spec, an array or `{ skip: true }`), set `controller.readonly: true`, or leave the route out of `controller.enabledRoutes`.
 
 **Override per endpoint.** `routes.<endpoint>.authorize` takes precedence over the controller-level spec.
 
@@ -224,6 +235,8 @@ routes: {
   find: { authenticate: { skip: true } },                                   // public read - skips BOTH checks
   count: { authorize: { skip: true } },                                     // authenticated, no authorization
   create: { authorize: { action: AuthorizationActions.CREATE, resource: 'Article' } },
+  updateById: { authorize: { action: AuthorizationActions.UPDATE, resource: 'Article' } },
+  updateBy: { authorize: { action: AuthorizationActions.UPDATE, resource: 'Article' } },
   deleteById: {
     authorize: {
       action: AuthorizationActions.DELETE,
@@ -231,6 +244,7 @@ routes: {
       allowedRoles: [AuthorizationRoles.ADMIN.identifier],
     },
   },
+  deleteBy: { authorize: { action: AuthorizationActions.DELETE, resource: 'Article' } },
 }
 ```
 
@@ -251,9 +265,9 @@ Set `Authorization.SKIP_AUTHORIZATION` from an earlier middleware to bypass auth
 import { Authorization } from '@venizia/ignis';
 import { createMiddleware } from 'hono/factory';
 
-const conditionalAuthzMiddleware = createMiddleware(async (c, next) => {
-  if (c.req.header('X-Internal-Service') === 'trusted-key') {
-    c.set(Authorization.SKIP_AUTHORIZATION, true);
+const conditionalAuthzMiddleware = createMiddleware(async (context, next) => {
+  if (context.req.header('X-Internal-Service') === 'trusted-key') {
+    context.set(Authorization.SKIP_AUTHORIZATION, true);
   }
   return next();
 });
@@ -264,13 +278,13 @@ const conditionalAuthzMiddleware = createMiddleware(async (c, next) => {
 ```typescript
 import { Authorization, Authentication } from '@venizia/ignis';
 
-const user = c.get(Authentication.CURRENT_USER);           // IAuthUser
-const rules = c.get(Authorization.RULES);                  // Map<string, unknown>, keyed by enforcer name
-const isSkipped = c.get(Authorization.SKIP_AUTHORIZATION);  // boolean
-const domain = c.get(Authorization.DOMAIN);                // untyped - see the warning below
+const user = context.get(Authentication.CURRENT_USER);           // IAuthUser
+const rules = context.get(Authorization.RULES);                  // Map<string, unknown>, keyed by enforcer name
+const isSkipped = context.get(Authorization.SKIP_AUTHORIZATION);  // boolean
+const domain = context.get(Authorization.DOMAIN);                // untyped - see the warning below
 
-c.set(Authorization.SKIP_AUTHORIZATION, true);
-c.set(Authorization.RULES, null); // force a rebuild later in the SAME request
+context.set(Authorization.SKIP_AUTHORIZATION, true);
+context.set(Authorization.RULES, null); // force a rebuild later in the SAME request
 ```
 
 > [!TIP]
@@ -402,7 +416,6 @@ import { BasePostgresEntity, model, generateIdColumnDefs } from '@venizia/ignis'
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
 @model({
-  type: 'entity',
   settings: { authorize: { principal: 'article' } },
 })
 export class Article extends BasePostgresEntity<typeof Article.schema> {

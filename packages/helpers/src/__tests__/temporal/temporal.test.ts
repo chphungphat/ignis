@@ -14,7 +14,7 @@ import {
 } from '@/modules/temporal';
 import type { ITemporalAdapter, TTemporalUnit } from '@/modules/temporal';
 import { PACKAGE_ROOT } from '../package-root';
-import { spawnSyncBounded } from '../spawn.helper';
+import { spawnSyncBounded } from '@venizia/dev-configs/testing';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -407,7 +407,7 @@ describe('TemporalPattern tokens', () => {
   // dayjs and moment tokens this dialect does not have; read greedily they came out as digits.
   test.each(['DDDD', 'HHH', 'ZZZ', 'Do', 'SS', 'YYYYY', 'MMMMM', 'ddddd', 'AA', 'LLL'])(
     "'%s' is refused, not split into smaller tokens",
-    pattern => {
+    (pattern) => {
       expect(() => helper.format({ value: 0, pattern })).toThrow(/unknown token/);
     },
   );
@@ -461,7 +461,7 @@ describe('TemporalHelper and the host zone', () => {
   // own format() reads the wall clock back in host time and lands an hour late.
   test.each(['NativeTemporalAdapter', 'LuxonTemporalAdapter', 'DayjsTemporalAdapter'])(
     '%s answers the same under a host zone with daylight saving',
-    adapterName => {
+    (adapterName) => {
       const moduleSource = path.resolve(PACKAGE_ROOT, 'src/modules/temporal/index.ts');
       const script = `
         const { DateTime } = await import('luxon');

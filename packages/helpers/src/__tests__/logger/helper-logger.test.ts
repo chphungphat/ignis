@@ -9,7 +9,7 @@ import type { ILogger } from '@/modules/logger/common/types';
 import { loggerSlot } from '@/modules/logger/slot';
 import type { TLoggerResolver } from '@/modules/logger/slot';
 import { PACKAGE_ROOT } from '../package-root';
-import { spawnSyncBounded } from '../spawn.helper';
+import { spawnSyncBounded } from '@venizia/dev-configs/testing';
 
 class ProbeHelper extends BaseHelper {
   constructor() {
@@ -33,11 +33,11 @@ const buildRecorder = (): { lines: Array<string>; resolve: TLoggerResolver } => 
       error: record('error'),
       emerg: record('emerg'),
       log: (level, message) => lines.push(`${tag}|log:${level}|${message}`),
-      for: methodName => make({ scopes: [...opts.scopes, methodName] }),
+      for: (methodName) => make({ scopes: [...opts.scopes, methodName] }),
     };
   };
 
-  return { lines, resolve: opts => make({ scopes: opts.scopes }) };
+  return { lines, resolve: (opts) => make({ scopes: opts.scopes }) };
 };
 
 describe('BaseHelper.logger', () => {

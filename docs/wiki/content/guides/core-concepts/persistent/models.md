@@ -1,6 +1,6 @@
 # Models
 
-Models define your data structure with Drizzle ORM tables. You declare the table, then build the model class from it with `ModelFactory.defineEntity`.
+Models define your data structure with Drizzle ORM tables. You declare the table, then build the model class from it with `ModelFactory.defineEntity`. The `settings` of `@model` (hidden columns, default filter, row scope, limits) have their own guide: [Model Settings](./model-settings).
 
 ## Creating a Basic Model
 
@@ -22,7 +22,7 @@ export const userTable = pgTable('User', {
   email: text('email').notNull(),
 });
 
-@model({ type: 'entity' })
+@model()
 export class User extends ModelFactory.defineEntity({ table: userTable }) {}
 
 export type TUser = TEntityObject<typeof User>;
@@ -76,7 +76,7 @@ export const configurationTable = pgTable(
   ],
 );
 
-@model({ type: 'entity' })
+@model()
 export class Configuration extends ModelFactory.defineEntity({
   table: configurationTable,
   relations: () => ({
@@ -169,7 +169,6 @@ export const userTable = pgTable('User', {
 });
 
 @model({
-  type: 'entity',
   settings: {
     hiddenProperties: ['password', 'secret'], // Never returned via repository
   },
@@ -212,16 +211,15 @@ Apply automatic filters to all repository queries. This is commonly used for sof
 
 ```typescript
 @model({
-  type: 'entity',
   settings: {
-    defaultFilter: { where: { isDeleted: false } },
+    query: { filter: { where: { isDeleted: false } } },
     hiddenProperties: ['deletedAt'],
   },
 })
 export class Article extends ModelFactory.defineEntity({ table: articleTable }) {}
 ```
 
-The default filter is applied automatically to all read operations. Bypass it with `shouldSkipDefaultFilter: true` in the options:
+The default filter (set with `settings.query.filter`) is applied automatically to all read operations. Bypass it with `shouldSkipDefaultFilter: true` in the options:
 
 ```typescript
 // Normal query - auto-filters out soft-deleted records
@@ -249,7 +247,6 @@ export const articleTable = pgTable('Article', {
 });
 
 @model({
-  type: 'entity',
   settings: {
     authorize: { principal: 'article' },
   },
@@ -273,13 +270,31 @@ The `@model` decorator accepts the following metadata:
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
-| `type` | `'entity' \| 'view'` | Whether this is a table or a database view |
+| `type` | `'entity'` | Optional; `ModelTypes.ENTITY` is the only value and the default |
 | `tableName` | `string` | Optional explicit table name |
-| `skipMigrate` | `boolean` | Skip this model during migrations |
+| `migration.use` | `boolean` | Default `true`. `false` marks the model for your migration tooling to skip (see [Migrations](#migrations)) |
 | `settings.hiddenProperties` | `string[]` | Properties excluded from all query results |
-| `settings.defaultFilter` | `TFilter` | Default filter auto-applied to all queries |
-| `settings.defaultLimit` | `number` | Default row limit when a query omits `limit` (must be a positive integer; falls back to `10`) |
+| `settings.query.filter` | `TFilter` | Default filter auto-applied to all queries |
+| `settings.query.limit.default` | `number` | Default row limit when a query omits `limit` (must be a positive integer; falls back to `10`) |
 | `settings.authorize.principal` | `string` | Authorization subject name for this model |
+
+## Migrations
+
+IGNIS generates no migrations. `drizzle-kit` reads the schema file you give it (`migration-schema.ts` in the examples) and writes the SQL; the framework only applies the files at startup. `migration: { use: false }` on a model is a marker in the public registry for tooling of yours that decides which models to migrate. IGNIS itself does not read it.
+
+```typescript
+// scripts/migrated-tables.ts
+import { MetadataRegistry } from '@venizia/ignis';
+import '@/models/entities'; // importing the models registers them
+
+const migrated = [...MetadataRegistry.getInstance().getAllModels()]
+  .filter(([, entry]) => entry.metadata?.migration?.use !== false)
+  .map(([tableName]) => tableName);
+
+console.log(migrated.join('\n'));
+```
+
+Feed that list to whatever builds your `drizzle-kit` schema file. `examples/vert` lists its tables by hand in `src/migration-schema.ts`, and that is the simplest way. The registry entry carries `migration: { use }`; the old `skipMigrate` field is gone.
 
 ## Model Template
 
@@ -294,7 +309,7 @@ export const myModelTable = pgTable('MyModel', {
   name: text('name').notNull(),
 });
 
-@model({ type: 'entity' })
+@model()
 export class MyModel extends ModelFactory.defineEntity({ table: myModelTable }) {}
 
 export type TMyModel = TEntityObject<typeof MyModel>;

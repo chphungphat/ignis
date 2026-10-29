@@ -28,12 +28,14 @@ The persistent layer manages data using [Drizzle ORM](https://orm.drizzle.team/)
 | Component | Description | Learn More |
 |-----------|-------------|------------|
 | **Models** | Define data structure with Drizzle schemas and relations | [Models Guide](./models.md) |
+| **Model settings** | Hidden columns, default filter, row scope and write guard, limits, authorization name | [Model Settings Guide](./model-settings.md) |
 | **DataSources** | Manage database connections with auto-discovery | [DataSources Guide](./datasources.md) |
 | **Repositories** | Provide type-safe CRUD operations | [Repositories Guide](./repositories.md) |
 | **Transactions** | Handle atomic multi-step operations (both SQL engines) | [Transactions Guide](./transactions.md) |
 | **Search & Typesense** | Full-text/faceted search over documents | [Search & Typesense Guide](./search-typesense.md) |
 | **PGlite** | Postgres compiled to WebAssembly, running in-process | [PGlite Guide](./pglite.md) |
 | **SQLite** | The second SQL engine, via libsql | [SQLite Guide](./sqlite.md) |
+| **Raw SQL engines** | An analytics engine that only runs SQL and returns rows | [Raw SQL Engines](./raw-sql.md) |
 
 ## Quick Example
 
@@ -45,7 +47,7 @@ export const userTable = pgTable('User', {
   email: text('email').notNull(),
 });
 
-@model({ type: 'entity' })
+@model()
 export class User extends ModelFactory.defineEntity({ table: userTable }) {}
 
 // 2. Create a DataSource
@@ -109,6 +111,7 @@ export const configs: IApplicationConfigs = {
   - [Transactions](./transactions) - Atomic operations
   - [PGlite](./pglite) - Postgres in-process, for tests and embedded deployment
   - [SQLite](./sqlite) - The second SQL engine, and what it refuses
+  - [Raw SQL Engines](./raw-sql) - An engine that only runs SQL and returns rows
   - [Search & Typesense](./search-typesense) - The typesense connector
 
 - **Related Concepts:**

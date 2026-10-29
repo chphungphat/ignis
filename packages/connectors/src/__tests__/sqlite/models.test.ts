@@ -207,7 +207,7 @@ describe('a sqliteTable round-trips through the SQLite model types', () => {
 
     expect(nullable.principalType.notNull).toBe(false);
     expect(required.principalType.notNull).toBe(true);
-    expect(required.principalType.hasDefault).toBe(true);
+    expect(required.principalType.hasDefault).toBe(false);
   });
 
   test('an unsupported id dataType throws NotSupported instead of emitting wrong DDL', () => {

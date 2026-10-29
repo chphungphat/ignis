@@ -23,7 +23,7 @@ describe('ApplicationEnvironment.get - options form', () => {
   test('transform runs on the raw value', () => {
     const environment = makeEnvironment({ APP_ENV_NODES: ' a:1 , b:2 ,, c:3 ' });
     const nodes = environment.get<string[]>('APP_ENV_NODES', {
-      transform: value => toDelimitedArray(value),
+      transform: (value) => toDelimitedArray(value),
     });
     expect(nodes).toEqual(['a:1', 'b:2', 'c:3']);
   });
@@ -67,7 +67,7 @@ describe('ApplicationEnvironment.get - a present-but-empty value', () => {
     const seen: Array<unknown> = [];
     const value = environment.get<string>('APP_ENV_EMPTY_2', {
       defaultValue: 'fallback',
-      transform: raw => {
+      transform: (raw) => {
         seen.push(raw);
         return raw as AnyType;
       },
@@ -86,4 +86,16 @@ describe('ApplicationEnvironment.get - a present-but-empty value', () => {
     expect(environment.get<string>('APP_ENV_ZERO', { defaultValue: '9' })).toBe('0');
     expect(environment.get<string>('APP_ENV_FALSE', { defaultValue: 'true' })).toBe('false');
   });
+});
+
+describe('ApplicationEnvironment.get - an inherited property name is not a variable', () => {
+  test.each(['constructor', 'toString', '__proto__', 'hasOwnProperty'])(
+    '%s reads as unset, so the default applies',
+    (name) => {
+      const environment = makeEnvironment({});
+
+      expect(environment.get<string>(name)).toBeUndefined();
+      expect(environment.get<string>(name, { defaultValue: 'fallback' })).toBe('fallback');
+    },
+  );
 });

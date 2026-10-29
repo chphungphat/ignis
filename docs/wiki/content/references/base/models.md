@@ -23,7 +23,7 @@ export const userTable = pgTable('User', {
   email: text('email').notNull(),
 });
 
-@model({ type: 'entity' })
+@model()
 export class User extends ModelFactory.defineEntity({ table: userTable }) {}
 
 export type TUser = TEntityObject<typeof User>;
@@ -35,7 +35,7 @@ A `@repository` binds this model to a datasource, and the datasource auto-discov
 
 - **Table first.** The table is a plain Drizzle table (`pgTable`, `pgSchema(...).table` or `sqliteTable`), exported so drizzle-kit sees it. `defineEntity` reads `TABLE_NAME` off it, so the name is written once.
 - **Registration.** The `@model` decorator registers the class in the framework's metadata registry, keyed by table name (resolved as `tableName` > static `TABLE_NAME` > class name).
-- **Validation at decoration time.** It validates `settings.defaultLimit` and, when you declare an authorization principal, copies it onto the static `AUTHORIZATION_SUBJECT` property.
+- **Validation at decoration time.** It validates `settings.query.limit.default` and, when you declare an authorization principal, copies it onto the static `AUTHORIZATION_SUBJECT` property.
 - **Enrichers.** `generateIdColumnDefs` and its siblings return column definitions you spread into the table, so common columns (id, timestamps, audit, principal) stay standardized across models.
 - **Zod on demand.** The entity generates Zod schemas from the table via `getSchema({ type })` - `'select'`, `'create'`, and `'update'` variants for validating query results, inserts, and updates.
   - The generator is a shared lazy singleton, so there is no per-entity cost.
@@ -66,7 +66,7 @@ export const articleTable = pgTable('Article', {
   title: text('title').notNull(),
 });
 
-@model({ type: 'entity' })
+@model()
 export class Article extends ModelFactory.defineEntity({ table: articleTable }) {}
 ```
 
@@ -92,13 +92,13 @@ export const postTable = pgTable('Post', {
   title: text('title').notNull(),
 });
 
-@model({ type: 'entity' })
+@model()
 export class Author extends ModelFactory.defineEntity({
   table: authorTable,
   relations: () => ({ posts: many(postTable, { relationName: 'author' }) }),
 }) {}
 
-@model({ type: 'entity' })
+@model()
 export class Post extends ModelFactory.defineEntity({
   table: postTable,
   relations: () => ({ author: one(authorTable) }),
@@ -124,7 +124,6 @@ export const accountTable = pgTable('Account', {
 });
 
 @model({
-  type: 'entity',
   settings: { hiddenProperties: ['password'] },
 })
 export class Account extends ModelFactory.defineEntity({ table: accountTable }) {}
@@ -132,12 +131,11 @@ export class Account extends ModelFactory.defineEntity({ table: accountTable }) 
 
 ### Apply a default filter
 
-`settings.defaultFilter` is merged into every repository read, count, update, and delete for the model. A common use is soft delete.
+`settings.query.filter` is merged into every repository read, count, update, and delete for the model. A common use is soft delete.
 
 ```typescript
 @model({
-  type: 'entity',
-  settings: { defaultFilter: { where: { isDeleted: false } } },
+  settings: { query: { filter: { where: { isDeleted: false } } } },
 })
 export class Note extends ModelFactory.defineEntity({ table: noteTable }) {} // noteTable has an isDeleted column
 ```
@@ -146,12 +144,11 @@ Pass `options: { shouldSkipDefaultFilter: true }` on a query to bypass it. See [
 
 ### Set a default limit
 
-`settings.defaultLimit` caps queries that omit `limit`. It must be a positive integer (validated at decoration time) and falls back to the global `DEFAULT_LIMIT` (10).
+`settings.query.limit.default` caps queries that omit `limit`. It must be a positive integer (validated at decoration time) and falls back to the global `DEFAULT_LIMIT` (10).
 
 ```typescript
 @model({
-  type: 'entity',
-  settings: { defaultLimit: 50 },
+  settings: { query: { limit: { default: 50 } } },
 })
 export class Event extends ModelFactory.defineEntity({ table: eventTable }) {}
 ```
@@ -164,7 +161,6 @@ See [Pagination](/references/base/filter-system/fields-order-pagination#default-
 
 ```typescript
 @model({
-  type: 'entity',
   settings: { authorize: { principal: 'User' } },
 })
 export class User extends ModelFactory.defineEntity({ table: userTable }) {}
@@ -185,7 +181,7 @@ export const tagTable = pgTable('Tag', {
   label: text('label').notNull(),
 });
 
-@model({ type: 'entity' })
+@model()
 export class Tag extends BaseEntity<typeof tagTable> {
   static override schema = tagTable;
 }

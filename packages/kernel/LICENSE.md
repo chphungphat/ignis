@@ -4,7 +4,7 @@ Ignis is a TypeScript Server Infrastructure framework built on [Hono](https://ho
 
 ## MIT License
 
-Copyright (c) 2025 VENIZIA Ltd. Co.
+Copyright (c) 2025 Venizia Co., Ltd.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -37,7 +37,7 @@ This monorepo contains the following packages, all licensed under MIT:
 | `@venizia/ignis-boot` | Application bootstrapping & artifact auto-discovery |
 | `@venizia/ignis-helpers` | Utility helpers - logging, cron, Redis, queues, storage |
 | `@venizia/ignis-inversion` | Dependency Injection & IoC container |
-| `@venizia/dev-configs` | Shared ESLint, Prettier, TypeScript configurations |
+| `@venizia/dev-configs` | Shared oxlint, ESLint, TypeScript configurations |
 | `@venizia/ignis-docs` | Documentation and MCP Server |
 
 ---
@@ -88,12 +88,9 @@ Ignis uses the following open-source libraries. We are grateful to the authors a
 
 ## Acknowledgments
 
-Ignis Framework is inspired by and built upon the work of many open-source projects:
+Ignis Framework is built on the work of open-source projects:
 
 - **[Hono](https://hono.dev/)** by Yusuke Wada - The ultrafast web framework that powers Ignis
-- **[LoopBack 4](https://loopback.io/)** by IBM/StrongLoop - Inspiration for the enterprise architecture patterns
-- **[NestJS](https://nestjs.com/)** by Kamil Mysliwiec - Inspiration for decorator-based controllers
-- **[InversifyJS](https://inversify.io/)** - Inspiration for the IoC container design
 
 We thank all the maintainers and contributors of these projects for their excellent work.
 

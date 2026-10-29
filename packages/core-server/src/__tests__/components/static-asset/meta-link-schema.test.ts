@@ -45,15 +45,15 @@ const metaLinkColumns = () => ({
   principalId: text('principal_id'),
 });
 
-@model({ type: 'entity', skipMigrate: true })
+@model({ migration: { use: false } })
 class NamespacedMetaLinkModel extends BaseRelationalEntity<typeof NamespacedMetaLinkModel.schema> {
-  static override schema = applicationSchema.table('MetaLink', metaLinkColumns(), def => [
+  static override schema = applicationSchema.table('MetaLink', metaLinkColumns(), (def) => [
     index('IDX_Namespaced_MetaLink_bucketName').on(def.bucketName),
   ]);
 }
 
 /** `objectName` is missing. The component reads that field, so this table has to stay refused. */
-@model({ type: 'entity', skipMigrate: true })
+@model({ migration: { use: false } })
 class IncompleteMetaLinkModel extends BaseRelationalEntity<typeof IncompleteMetaLinkModel.schema> {
   static override schema = pgTable('IncompleteMetaLink', {
     ...generateIdColumnDefs({ id: { dataType: 'string' } }),

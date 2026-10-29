@@ -3,7 +3,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { PACKAGE_ROOT } from '../package-root';
-import { spawnSyncBounded } from '../spawn.helper';
+import { spawnSyncBounded } from '@venizia/dev-configs/testing';
 
 /** Each case runs in a fresh process: the factory is module state, and the slot is process-global. */
 const runInFreshProcess = async (opts: { name: string; body: string }): Promise<string> => {
@@ -27,7 +27,7 @@ const runInFreshProcess = async (opts: { name: string; body: string }): Promise<
     const line = result.stdout
       .toString()
       .split('\n')
-      .find(text => text.startsWith('RESULT:'));
+      .find((text) => text.startsWith('RESULT:'));
     if (!line) {
       throw new Error(`[provider-slot] no result | stderr: ${result.stderr.toString()}`);
     }

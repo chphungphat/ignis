@@ -81,16 +81,16 @@ export class FakeSearchEngineHelper implements ISearchConnector {
   };
 
   readonly document: ISearchDocumentScoped = {
-    create: opts => this.createDocument(opts),
-    get: opts => this.getDocument(opts),
-    count: opts => this.countDocuments(opts),
-    upsert: opts => this.upsertDocument(opts),
-    update: opts => this.updateDocument(opts),
-    delete: opts => this.deleteDocument(opts),
-    import: opts => this.importDocuments(opts),
-    updateBy: opts => this.updateByFilter(opts),
-    deleteBy: opts => this.deleteByFilter(opts),
-    deleteAll: opts => this.deleteAllDocuments(opts),
+    create: (opts) => this.createDocument(opts),
+    get: (opts) => this.getDocument(opts),
+    count: (opts) => this.countDocuments(opts),
+    upsert: (opts) => this.upsertDocument(opts),
+    update: (opts) => this.updateDocument(opts),
+    delete: (opts) => this.deleteDocument(opts),
+    import: (opts) => this.importDocuments(opts),
+    updateBy: (opts) => this.updateByFilter(opts),
+    deleteBy: (opts) => this.deleteByFilter(opts),
+    deleteAll: (opts) => this.deleteAllDocuments(opts),
     export: () => this.exportDocuments(),
   };
 
@@ -279,7 +279,7 @@ export class FakeSearchDataSource extends TypesenseDataSource {
   tableName: 'products',
   settings: {
     hiddenProperties: ['secret'],
-    defaultFilter: { where: { isActive: true } },
+    query: { filter: { where: { isActive: true } } },
   },
 })
 export class ProductDocument extends BaseSearchEntity {

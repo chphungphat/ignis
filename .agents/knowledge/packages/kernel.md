@@ -32,10 +32,9 @@ package depends on the other, and only `kernel` feeds `core` (`make core` needs 
 beside `boot` rather than after it is what keeps boot's node-only glob discovery out of the kernel
 graph.
 
-It ships a **dual CJS + ESM build** (`dist/cjs/index.js` and `dist/esm/index.js`, both conditions in
-one `exports` entry), like `inversion`, `filter`, and `boot`. The browser-purity claim is what forces
-the `import` condition: a browser bundler that finds only CommonJS either fails on the bare
-`require()` or needs a per-consumer pre-bundling workaround. `packages/core-server/src/index.ts` re-exports
+It ships **ES modules only** (`dist/esm/index.js`, one `exports` entry with `types` and `default`),
+like `inversion`, `filter`, and `boot`. The browser-purity claim rests on it: a browser bundler takes
+the ES build without a per-consumer pre-bundling workaround. `packages/core-server/src/index.ts` re-exports
 the kernel barrel wholesale, so `@venizia/ignis` keeps its published name and its full public
 surface: no consumer import changed when this package was carved out of core.
 
@@ -89,7 +88,7 @@ and `Statuses`; `src/helpers/inversion/` carries the kernel `Container` and `Met
 
 ## Browser purity is the design constraint, and it is measured
 
-`scripts/purity/manifest.ts` claims this package's whole published surface and derives its rows from
+`scripts/checks/purity/manifest.ts` claims this package's whole published surface and derives its rows from
 the `exports` map, so today the map resolves to `dist/esm/index.js` inside this package, and
 whatever is added next. `make purity-kernel`
 bundles it for `target: 'browser'` and fails on any node builtin or node global. Purity is a property
@@ -191,9 +190,9 @@ is where the model registry, the repository bindings, and datasource auto-discov
 The model registry is keyed by registered name (`@model({ tableName })` > `TABLE_NAME` > class name)
 AND by schema object (`getModelEntryBySchema`, a WeakMap). A schema claimed by a SECOND model drops
 out of that map rather than answering with whichever registered last - two models over one drizzle
-table would otherwise apply the wrong `hiddenProperties`/`scopeFilter`. A relation carries only its schema, and
+table would otherwise apply the wrong `hiddenProperties`/`access`. A relation carries only its schema, and
 a lookup by SQL table name missed every model whose table name differed from its registered name -
-`include` then dropped its `hiddenProperties` and `scopeFilter`.
+`include` then dropped its `hiddenProperties` and `access`.
 
 ## Generated bulk routes take `where` in the query or the body
 
@@ -284,7 +283,7 @@ body is empty - `{}`, a `where` alone, or only keys the body schema strips - wit
 
 `errorResponses()` (`base/models/common/schemas.ts`) is the one home of the `4XX`/`5XX` pair;
 `jsonResponse`, `htmlResponse` and core-server's static-asset definitions spread it. `ErrorSchema`
-carries the refId `ErrorResponse`: two copies of it (CJS and ESM) merge into one component, an
+carries the refId `ErrorResponse`: two copies of it (two installed copies) merge into one component, an
 `.extend()` documents as `allOf`, and a consumer schema with the same refId silently resolves to the
 framework's.
 
@@ -305,7 +304,7 @@ side effect (patching `.openapi()` onto the shared prototype) and calls
 Server code must import them from here, never from `@venizia/ignis-filter/schemas` - the undecorated
 instances validate identically and document nothing.
 
-`IModelSettings.scopeFilter` (`helpers/inversion/common/types/model.ts`) is the model-settings surface for
+`IModelSettings.access` (`helpers/inversion/common/types/model.ts`) is the model-settings surface for
 a per-request row scope. `resolve()` returns one of three states, and the order they are checked in
 is the whole safety property: a `TWhere` ANDs in; the exact symbol `ScopeFilters.UNRESTRICTED`
 (`base/repositories/common/constants.ts`) applies no scope for THIS call, checked before the

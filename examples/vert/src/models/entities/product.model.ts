@@ -20,7 +20,7 @@ export const productTable = pgTable(
     price: integer('price').notNull().default(0),
     tags: varchar('tags', { length: 100 }).array(),
   },
-  table => [unique('UQ_Product_code').on(table.code), index('IDX_Product_name').on(table.name)],
+  (table) => [unique('UQ_Product_code').on(table.code), index('IDX_Product_name').on(table.name)],
 );
 
 /**
@@ -28,8 +28,7 @@ export const productTable = pgTable(
  * no price; a query passes `skipDefaultFilter: true` to see them.
  */
 @model({
-  type: 'entity',
-  settings: { defaultFilter: { where: { price: { gt: 0 } }, limit: 100 } },
+  settings: { query: { filter: { where: { price: { gt: 0 } }, limit: 100 } } },
 })
 export class Product extends ModelFactory.defineEntity({
   table: productTable,

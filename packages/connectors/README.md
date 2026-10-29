@@ -49,13 +49,13 @@ export const postTable = pgTable('Post', {
   title: text('title').notNull(),
 });
 
-@model({ type: 'entity' })
+@model()
 export class Author extends ModelFactory.defineEntity({
   table: authorTable,
   relations: () => ({ posts: many(postTable, { relationName: 'author' }) }),
 }) {}
 
-@model({ type: 'entity' })
+@model()
 export class Post extends ModelFactory.defineEntity({
   table: postTable,
   relations: () => ({ author: one(authorTable) }),
@@ -144,3 +144,16 @@ name (`@venizia/ignis/postgres`, ...) except `/http`. Its root re-exports `/post
 - [All changelogs](https://ignis.venizia.ai/changelogs/)
 
 MIT licensed - see [LICENSE.md](https://github.com/VENIZIA-AI/ignis/blob/main/LICENSE.md).
+
+---
+
+<p align="center">
+  <a href="https://venizia.ai">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://venizia.ai/assets/logo-white.svg">
+      <img src="https://venizia.ai/assets/logo.svg" alt="VENIZIA" height="28">
+    </picture>
+  </a>
+  <br>
+  <sub>@venizia/ignis-connectors is part of IGNIS, built and maintained by <a href="https://venizia.ai">VENIZIA</a>.</sub>
+</p>

@@ -3,22 +3,16 @@
   "extends": "@venizia/dev-configs/tsconfig.common.json",
   "compilerOptions": {
     "experimentalDecorators": true,
-    "outDir": "dist/cjs",
+    "emitDecoratorMetadata": true,
+    "outDir": "dist/esm",
     "rootDir": "src",
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/*": ["./src/*"]
     },
-    "useDefineForClassFields": false
+    "useDefineForClassFields": false,
+    "module": "ESNext",
+    "moduleResolution": "bundler"
   },
-  "include": [
-    "src"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "app_data",
-    "src/__tests__/fixtures"
-  ]
+  "include": ["src"],
+  "exclude": ["node_modules", "dist", "app_data", "src/__tests__/fixtures"]
 }

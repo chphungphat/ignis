@@ -1,5 +1,11 @@
 import { HTTP } from '@/common/constants/http';
 import { getError } from '@/modules/error';
+import {
+  TemporalWrittenDateStyles,
+  type TTemporalMonthNameWidth,
+  type TTemporalNameWidth,
+  type TTemporalWrittenDateStyle,
+} from '../common/constants';
 import type { ITemporalParts } from '../common/types';
 
 /** A service writes a handful of locales; capped so caller-fed locales cannot grow it. */
@@ -91,25 +97,25 @@ export class TemporalLocale {
   }
 
   /** `month` is 1-12. */
-  monthName(opts: { month: number; width: 'short' | 'long' }): string {
+  monthName(opts: { month: number; width: TTemporalMonthNameWidth }): string {
     const { month, width } = opts;
     const formatter = this.formatterOf({ month: width });
     const table = this.tableOf({
       key: `month-${width}`,
       size: MONTHS,
-      read: index => formatter.format(Date.UTC(2024, index, 15)),
+      read: (index) => formatter.format(Date.UTC(2024, index, 15)),
     });
     return table[month - 1];
   }
 
   /** `dayOfWeek` is ISO: 1 Monday - 7 Sunday. */
-  weekdayName(opts: { dayOfWeek: number; width: 'narrow' | 'short' | 'long' }): string {
+  weekdayName(opts: { dayOfWeek: number; width: TTemporalNameWidth }): string {
     const { dayOfWeek, width } = opts;
     const formatter = this.formatterOf({ weekday: width });
     const table = this.tableOf({
       key: `weekday-${width}`,
       size: WEEKDAYS,
-      read: index => formatter.format(MONDAY + index * DAY_MILLISECONDS),
+      read: (index) => formatter.format(MONDAY + index * DAY_MILLISECONDS),
     });
     return table[dayOfWeek - 1];
   }
@@ -124,20 +130,20 @@ export class TemporalLocale {
     const table = this.tableOf({
       key: 'day-period',
       size: 2,
-      read: index =>
+      read: (index) =>
         formatter
           .formatToParts(Date.UTC(2024, 0, 1, index === 0 ? 1 : NOON + 1))
-          .find(part => part.type === 'dayPeriod')?.value ?? (index === 0 ? 'AM' : 'PM'),
+          .find((part) => part.type === 'dayPeriod')?.value ?? (index === 0 ? 'AM' : 'PM'),
     });
     const marker = (opts.meridiem ?? table)[opts.hour < NOON ? 0 : 1];
     return opts.isLowerCase ? marker.toLocaleLowerCase(this.locale) : marker;
   }
 
   /** The wall-clock date the way the locale writes it: `numeric` is `10/14/2026`, `long` is `October 14, 2026`. */
-  writtenDate(opts: { parts: ITemporalParts; style: 'numeric' | 'long' }): string {
+  writtenDate(opts: { parts: ITemporalParts; style: TTemporalWrittenDateStyle }): string {
     const { parts, style } = opts;
     const formatter =
-      style === 'numeric'
+      style === TemporalWrittenDateStyles.NUMERIC
         ? this.formatterOf({ year: 'numeric', month: '2-digit', day: '2-digit' })
         : this.formatterOf({ dateStyle: 'long' });
 

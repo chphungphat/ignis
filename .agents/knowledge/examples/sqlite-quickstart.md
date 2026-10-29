@@ -41,7 +41,7 @@ end-to-end evidence that the lift worked.
 
 ```bash
 bun install
-bun run start        # http://localhost:3000/api/notes, explorer at /api/doc/explorer
+bun run server:dev        # http://localhost:3000/api/notes, explorer at /api/doc/explorer
 bun test              # smoke test: same Application, free port, APP_ENV_SQLITE_URL=:memory:
 ```
 
@@ -61,8 +61,7 @@ artifact.
 - **Explicit transactions need a local database.** A remote Turso url runs every statement on its
   own connection, so `BEGIN` cannot hold - `LibSqlDriver` refuses rather than letting it silently
   not apply.
-- This example is one of `SMOKE_EXAMPLES` in `scripts/examples.ts` - `bun scripts/examples.ts smoke`
-  runs its `bun test` in CI, no docker needed.
+- The smoke test runs with `bun test` inside the example folder, not in CI. No docker needed.
 
 ## Related
 - [pglite-quickstart](/examples/pglite-quickstart.md)

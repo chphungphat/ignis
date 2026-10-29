@@ -2,6 +2,7 @@ import type { TBindingNamespace } from '@/common/bindings';
 import { ArtifactNamespaces, BindingNamespaces, CoreBindings } from '@/common/bindings';
 import type { Binding, TBindingScope } from '@/helpers/inversion';
 import { BindingScopes, MetadataRegistry } from '@/helpers/inversion';
+import { assertBindingsResolve } from '@venizia/ignis-inversion';
 import { OpenAPIHono } from '@hono/zod-openapi';
 import type { AnyType, IConfigurable, TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
@@ -27,6 +28,7 @@ import type { TMixinOpts } from '../mixins/common';
 import type { IRepository } from '../repositories';
 import type { IService } from '../services';
 import { AbstractApplication } from './abstract';
+import { registerCors } from './cors';
 import { ArtifactIndexHelper } from './artifact-index';
 import type { IBootSequenceStep } from './boot-sequence';
 import { BootSteps } from './boot-sequence';
@@ -39,7 +41,7 @@ interface IRegisterDynamicBindingsOptions<T extends IConfigurable = IConfigurabl
   onAfterConfigure?: (opts: { binding: Binding<T>; instance: T }) => Promise<void>;
 }
 
-/** Adds the `OpenAPIHono` router surface on top of `AbstractApplication` - no listening server, so this is the layer a browser Worker or gRPC-only host can extend without pulling in `Bun.serve` / `@hono/node-server`. */
+/** Adds the `OpenAPIHono` router surface on top of `AbstractApplication` - no listening server, so this is the layer a browser Worker or gRPC-only host can extend without pulling in `Bun.serve`. */
 export abstract class RestApplication<
   AppEnv extends Env = Env,
   AppSchema extends Schema = {},
@@ -96,10 +98,10 @@ export abstract class RestApplication<
 
     this.bind<typeof this.server>({
       key: CoreBindings.APPLICATION_SERVER,
-    }).toProvider(_ => this.server);
+    }).toProvider((_) => this.server);
     this.bind<typeof this.rootRouter>({
       key: CoreBindings.APPLICATION_ROOT_ROUTER,
-    }).toProvider(_ => this.rootRouter);
+    }).toProvider((_) => this.rootRouter);
   }
 
   /** The correlation id every host stamps - see {@link RequestIdGenerator} for why `crypto.randomUUID` is refused. */
@@ -127,6 +129,10 @@ export abstract class RestApplication<
    */
   protected registerDefaultMiddlewares(): ValueOrPromise<void> {
     const server = this.getServer();
+
+    // First of all, so every response the framework produces on its own - a bodyLimit 413, a body the
+    // request spy cannot parse, the error envelope - leaves with the headers a browser needs to read it.
+    registerCors({ server, options: this.configs.middlewares?.cors });
 
     server.use(requestId({ generator: () => this.generateRequestId() }));
 
@@ -325,31 +331,13 @@ export abstract class RestApplication<
     }
 
     const logger = this.logger.for(this.verifyBindings.name);
-    const tags = [BindingNamespaces.SERVICE, BindingNamespaces.REPOSITORY];
-    const failures: string[] = [];
-    let verified = 0;
+    const { verified } = assertBindingsResolve({
+      container: this,
+      namespaces: [BindingNamespaces.SERVICE, BindingNamespaces.REPOSITORY],
+      scope: this.verifyBindings.name,
+    });
 
-    for (const tag of tags) {
-      const bindings = this.findByTag({ tag });
-      for (const binding of bindings) {
-        try {
-          this.get({ key: binding.key });
-          verified += 1;
-        } catch (error) {
-          failures.push(
-            `${binding.key}: ${error instanceof Error ? error.message : String(error)}`,
-          );
-        }
-      }
-    }
-
-    if (failures.length > 0) {
-      throw getError({
-        message: `[${this.verifyBindings.name}] ${failures.length} binding(s) cannot be resolved | ${failures.join(' | ')}`,
-      });
-    }
-
-    logger.info('Every service and repository binding resolves | verified: %d', verified);
+    logger.info('Every service and repository binding resolves | verified: %d', verified.length);
   }
 
   /** One measured log line per step, and a failure names its step before rethrowing, so a hung or failed boot is attributable without reading the sequence. */
@@ -383,7 +371,7 @@ export abstract class RestApplication<
       'Boot sequence complete | %d step(s) | Took: %s (ms) | %s',
       steps.length,
       performance.now() - t,
-      steps.map(step => step.name).join(' -> '),
+      steps.map((step) => step.name).join(' -> '),
     );
   }
 
@@ -692,7 +680,7 @@ export abstract class RestApplication<
     ];
     const collisions = ArtifactBindingKeys.findDerivedCollisions({
       entries: kinds.flatMap(([targets, namespace]) =>
-        targets.map(target => ({
+        targets.map((target) => ({
           target,
           namespace,
           binding: registry.getArtifactMetadata({ target })?.binding,
@@ -791,7 +779,7 @@ export abstract class RestApplication<
       }).key;
     for (const entry of provides) {
       this.bind({ key: entry.key })
-        .toProvider(container => {
+        .toProvider((container) => {
           const instance = container.get<Record<string | symbol, () => unknown>>({
             key: componentKey,
           });

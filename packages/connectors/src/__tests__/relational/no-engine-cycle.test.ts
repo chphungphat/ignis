@@ -8,8 +8,7 @@ import { basename, dirname, join, relative, resolve } from 'node:path';
  * `dist` would make the walk vacuous, so the emptiness guards below fail loudly - run `make connectors`
  * first. `dist` resolves from the cwd; `bun test` runs from `packages/connectors`.
  */
-/** `dist/cjs`, not `dist`: this package dual-builds, and the two halves emit the same tree - walking one is enough. */
-const DIST = resolve('dist', 'cjs');
+const DIST = resolve('dist', 'esm');
 
 /** Every paradigm family names its engine-neutral tier this. */
 const NEUTRAL_TIER = 'core';
@@ -23,9 +22,9 @@ const NEUTRAL_TIER = 'core';
  */
 const listFamilyDirectories = (): string[] =>
   readdirSync(DIST, { withFileTypes: true })
-    .filter(entry => entry.isDirectory())
-    .map(entry => join(DIST, entry.name))
-    .filter(directory => {
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => join(DIST, entry.name))
+    .filter((directory) => {
       try {
         return statSync(join(directory, NEUTRAL_TIER)).isDirectory();
       } catch {
@@ -106,10 +105,7 @@ const resolveSpecifier = (opts: { fromFile: string; specifier: string }): string
   return null;
 };
 
-/**
- * `require()` covers the CJS emit; the `from '...'` form
- * keeps the walk honest if the emit ever turns ESM.
- */
+/** The build is ESM, but `require(...)` of a relative path is still an edge. */
 const REQUIRE_PATTERN = /require\(\s*["']([^"']+)["']\s*\)/g;
 const FROM_PATTERN = /(?:^|[\s;}])(?:import|export)\s[^;]*?from\s*["']([^"']+)["']/gm;
 
@@ -170,7 +166,7 @@ const walkFromNeutralTier = (opts: { family: string }): IWalkResult => {
       cameFrom.set(next, file);
       queue.push(next);
 
-      if (forbiddenDirectories.some(directory => next.startsWith(`${directory}/`))) {
+      if (forbiddenDirectories.some((directory) => next.startsWith(`${directory}/`))) {
         offenders.push(next);
       }
     }
@@ -197,7 +193,7 @@ const walkFromNeutralTier = (opts: { family: string }): IWalkResult => {
 
 describe('no neutral tier reaches an engine adapter at runtime', () => {
   test('dist is built and every family is discovered - a missing dist would pass vacuously', () => {
-    const families = listFamilyDirectories().map(directory => basename(directory));
+    const families = listFamilyDirectories().map((directory) => basename(directory));
 
     // Families and engines named explicitly ONLY here: a discovery that silently found nothing
     // would make every walk below pass against an empty offender set. This is also the assertion

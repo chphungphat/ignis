@@ -1,6 +1,6 @@
 // Smoke test: boots the real application against a local Postgres (docker compose) and proves RLS
-// with HTTP requests. Skipped when the database is unreachable - this example is not in
-// SMOKE_EXAMPLES (scripts/examples.ts), so CI never needs the database up. Bun awaits an async
+// with HTTP requests. Skipped when the database is unreachable - CI does not run this
+// example's tests, so it never needs the database up. Bun awaits an async
 // `describe` callback before collecting its tests, so the reachability probe can gate
 // `describe.skipIf` without a top-level await (this package stays CommonJS, like every other
 // example).
@@ -129,15 +129,15 @@ describe('supabase-example', async () => {
     test("GET /notes returns only the caller's own rows - two users, two answers", async () => {
       const responseA = await authedFetch({ path: '/notes', token: tokenA });
       const { data: notesA } = NoteListResponse.parse(await responseA.json());
-      expect(notesA.every(note => note.ownerId === userAId)).toBe(true);
-      expect(notesA.some(note => note.id === noteAId)).toBe(true);
-      expect(notesA.some(note => note.id === noteBId)).toBe(false);
+      expect(notesA.every((note) => note.ownerId === userAId)).toBe(true);
+      expect(notesA.some((note) => note.id === noteAId)).toBe(true);
+      expect(notesA.some((note) => note.id === noteBId)).toBe(false);
 
       const responseB = await authedFetch({ path: '/notes', token: tokenB });
       const { data: notesB } = NoteListResponse.parse(await responseB.json());
-      expect(notesB.every(note => note.ownerId === userBId)).toBe(true);
-      expect(notesB.some(note => note.id === noteBId)).toBe(true);
-      expect(notesB.some(note => note.id === noteAId)).toBe(false);
+      expect(notesB.every((note) => note.ownerId === userBId)).toBe(true);
+      expect(notesB.some((note) => note.id === noteBId)).toBe(true);
+      expect(notesB.some((note) => note.id === noteAId)).toBe(false);
     });
 
     test('GET /notes/unscoped sees every row - the control group with no auth context', async () => {
@@ -145,8 +145,8 @@ describe('supabase-example', async () => {
       expect(response.status).toBe(200);
 
       const { data } = NoteListResponse.parse(await response.json());
-      expect(data.some(note => note.id === noteAId)).toBe(true);
-      expect(data.some(note => note.id === noteBId)).toBe(true);
+      expect(data.some((note) => note.id === noteAId)).toBe(true);
+      expect(data.some((note) => note.id === noteBId)).toBe(true);
     });
 
     test("DELETE someone else's note matches nothing - RLS, not a permission error", async () => {

@@ -3,7 +3,7 @@ import type { IDomainEvent, IEventHandler, TEventHandlerReference } from '@/base
 import { Container } from '@/helpers/inversion/container';
 import type { AnyType } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
-import { describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, jest, test } from 'bun:test';
 import { RecordingLogger } from '../support/recording-logger';
 
 /** A stand-in handler: records every `handle` call, and throws `getError` for the first `failuresBeforeSuccess` calls. */
@@ -59,9 +59,38 @@ interface TestEventPayloadMap {
 
 const HANDLER_KEY = 'events.test-handler';
 
-/** Flushes the microtask queue AND any pending timers - `queueMicrotask` alone does not wait out the retry backoff sleeps. */
-const flush = (opts?: { ms?: number }): Promise<void> => {
-  return new Promise(resolve => setTimeout(resolve, opts?.ms ?? 0));
+// The retry backoffs sleep with the global setTimeout. The clock is faked for every test of this file and
+// `flush` moves it, so a case that waits out an 8 s backoff costs milliseconds, not 8 s.
+beforeEach(() => {
+  jest.useFakeTimers();
+});
+
+afterEach(() => {
+  jest.useRealTimers();
+});
+
+/** Lets every promise continuation that is already queued run. A handler call, its rejection and the retry sleep that follows are a handful of hops. */
+const settle = async (): Promise<void> => {
+  for (let hop = 0; hop < 50; hop += 1) {
+    await Promise.resolve();
+  }
+};
+
+/**
+ * Runs everything that is due within `ms` of fake time: the clock moves one millisecond at a time and the
+ * promise continuations of each timer that fires run before the next step, so a retry that is armed by
+ * another retry is armed in order, exactly as in real time. No step reaches past `ms`.
+ */
+const flush = async (opts?: { ms?: number }): Promise<void> => {
+  await settle();
+
+  for (let elapsed = 0; elapsed < (opts?.ms ?? 0); elapsed += 1) {
+    jest.advanceTimersByTime(1);
+    await settle();
+  }
+
+  jest.advanceTimersByTime(0);
+  await settle();
 };
 
 const buildBus = (): {
@@ -108,7 +137,7 @@ describe('EventBus - publish never blocks and never throws', () => {
 
     expect(() => bus.publish({ name: 'otherEvent', payload: { flag: true } })).not.toThrow();
 
-    const debugCalls = logger.calls.filter(call => call.level === 'debug');
+    const debugCalls = logger.calls.filter((call) => call.level === 'debug');
     expect(debugCalls).toHaveLength(1);
     expect(debugCalls[0].message).toContain('No handler registered');
   });
@@ -129,7 +158,7 @@ describe('EventBus - default retry (no `retry` given) is unchanged from before j
 
     expect(handler.handleCalls).toHaveLength(3);
     expect(handler.handleCalls[2].event.payload).toEqual({ value: 42 });
-    expect(logger.calls.filter(call => call.level === 'error')).toHaveLength(0);
+    expect(logger.calls.filter((call) => call.level === 'error')).toHaveLength(0);
   });
 
   test('a handler failing every time is attempted exactly 3 times, then gives up with one log line', async () => {
@@ -146,7 +175,7 @@ describe('EventBus - default retry (no `retry` given) is unchanged from before j
 
     expect(handler.handleCalls).toHaveLength(3);
 
-    const errorCalls = logger.calls.filter(call => call.level === 'error');
+    const errorCalls = logger.calls.filter((call) => call.level === 'error');
     expect(errorCalls).toHaveLength(1);
 
     const [errorCall] = errorCalls;
@@ -477,7 +506,7 @@ describe('EventBus - handler shapes: binding key vs function', () => {
       name: 'testEvent',
       handler: {
         type: EventHandlerTypes.FUNCTION,
-        fn: async fnOpts => {
+        fn: async (fnOpts) => {
           calls.push({ event: fnOpts.event });
         },
       },
@@ -638,7 +667,7 @@ describe('EventBus - synchronous handlers', () => {
 
     expect(handler.handleCalls).toHaveLength(3);
 
-    const errorCalls = logger.calls.filter(call => call.level === 'error');
+    const errorCalls = logger.calls.filter((call) => call.level === 'error');
     expect(errorCalls).toHaveLength(1);
     expect(errorCalls[0].message).toContain('Handler exhausted retries');
     expect(errorCalls[0].args).toContain('trace-sync');

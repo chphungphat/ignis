@@ -10,7 +10,7 @@ generated:
 
 > Generated from source - do not edit; run `make okf-gen`. Playbook: [build system](/process/build-system.md).
 
-**115 targets.**
+**121 targets.**
 
 | Target | Depends on | Description |
 |---|---|---|
@@ -21,6 +21,7 @@ generated:
 | `make boot` | `helpers` | Rebuild one package, after its dependencies. |
 | `make build` | `build-all` | Rebuilds all packages (alias for 'build-all'). |
 | `make build-all` | `core core-worker boot docs surface-check wiki-links-check wiki-anchors-check` | Rebuilds all packages in order, then the wiki and its checks. |
+| `make build-checks` | - | Gate: the built output - self-contained sourcemaps, the oxlint subpath loads no ESLint. Needs a build. |
 | `make catalog-check` | - | Gate: every catalogued dep is referenced as "catalog:", none drifted. |
 | `make changelogs-migrate` | - | Write a packages: list into every changelog that declares none. |
 | `make clean` | - | Clean build artifacts from all packages. |
@@ -36,24 +37,17 @@ generated:
 | `make clean-install-inversion` | - | Load one package's sub-paths from a clean install. Needs a build. |
 | `make clean-install-kernel` | - | Load one package's sub-paths from a clean install. Needs a build. |
 | `make connectors` | `kernel` | Rebuild one package, after its dependencies. |
+| `make controls-check` | - | Gate: every registered positive-control test still exists (scripts/checks/controls.json). Needs dev-configs built. |
 | `make core` | `core-server` | Rebuild one package, after its dependencies. |
 | `make core-server` | `connectors boot` | Rebuild one package, after its dependencies. |
 | `make core-worker` | `kernel` | Rebuild one package, after its dependencies. |
 | `make dev-configs` | - | Rebuild one package, after its dependencies. |
 | `make docs` | - | Rebuilds wiki (VitePress) for GitHub Pages. |
+| `make examples-check` | - | Gate: every example type-checks against the built packages. Needs a build. |
 | `make filter` | `inversion` | Rebuild one package, after its dependencies. |
-| `make fmt` | `fmt-packages` | fmt-<pkg> for every package. |
-| `make fmt-boot` | - | Apply oxlint --fix, ESLint --fix and oxfmt to one package. |
-| `make fmt-connectors` | - | Apply oxlint --fix, ESLint --fix and oxfmt to one package. |
-| `make fmt-core` | `fmt-core-server` | Apply oxlint --fix, ESLint --fix and oxfmt to one package. |
-| `make fmt-core-server` | - | Apply oxlint --fix, ESLint --fix and oxfmt to one package. |
-| `make fmt-core-worker` | - | Apply oxlint --fix, ESLint --fix and oxfmt to one package. |
-| `make fmt-dev-configs` | - | Apply oxlint --fix, ESLint --fix and oxfmt to one package. |
-| `make fmt-filter` | - | Apply oxlint --fix, ESLint --fix and oxfmt to one package. |
-| `make fmt-helpers` | - | Apply oxlint --fix, ESLint --fix and oxfmt to one package. |
-| `make fmt-inversion` | - | Apply oxlint --fix, ESLint --fix and oxfmt to one package. |
-| `make fmt-kernel` | - | Apply oxlint --fix, ESLint --fix and oxfmt to one package. |
-| `make fmt-packages` | `fmt-dev-configs fmt-inversion fmt-filter fmt-helpers fmt-boot fmt-kernel fmt-connectors fmt-core-worker fmt-core-server` | fmt-<pkg> for every package. |
+| `make fmt-files` | - | Format check / write of package.json, .github, .agents, .configs, presets and examples. |
+| `make fmt-scripts` | - | Format check + bun check type-check of scripts/ / format scripts/. |
+| `make fmt-wiki` | - | Lint docs/wiki scripts and check its format / the same with --fix and write mode. |
 | `make help` | - | Show this help message (a bare 'make' does the same). |
 | `make helpers` | `inversion` | Rebuild one package, after its dependencies. |
 | `make install` | - | Install all dependencies with bun. |
@@ -61,26 +55,39 @@ generated:
 | `make kernel` | `helpers filter` | Rebuild one package, after its dependencies. |
 | `make knowledge-symbols-check` | - | Fail when a symbol a concept names is gone or its signature changed |
 | `make lint` | `lint-packages` | lint-<pkg> for every package. |
-| `make lint-all` | `lint-packages lint-scripts` | lint-packages and lint-scripts. |
-| `make lint-boot` | - | oxlint + ESLint (naming-convention) + oxfmt check of one package. |
-| `make lint-connectors` | - | oxlint + ESLint (naming-convention) + oxfmt check of one package. |
-| `make lint-core` | `lint-core-server` | oxlint + ESLint (naming-convention) + oxfmt check of one package. |
-| `make lint-core-server` | - | oxlint + ESLint (naming-convention) + oxfmt check of one package. |
-| `make lint-core-worker` | - | oxlint + ESLint (naming-convention) + oxfmt check of one package. |
-| `make lint-dev-configs` | - | oxlint + ESLint (naming-convention) + oxfmt check of one package. |
-| `make lint-filter` | - | oxlint + ESLint (naming-convention) + oxfmt check of one package. |
-| `make lint-helpers` | - | oxlint + ESLint (naming-convention) + oxfmt check of one package. |
-| `make lint-inversion` | - | oxlint + ESLint (naming-convention) + oxfmt check of one package. |
-| `make lint-kernel` | - | oxlint + ESLint (naming-convention) + oxfmt check of one package. |
+| `make lint-all` | `lint-packages lint-scripts lint-files lint-wiki` | lint-packages, lint-scripts, lint-files (package.json, .github, .agents, .configs, presets, examples) and lint-wiki. |
+| `make lint-boot` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
+| `make lint-connectors` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
+| `make lint-core` | `lint-core-server` | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
+| `make lint-core-server` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
+| `make lint-core-worker` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
+| `make lint-dev-configs` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
+| `make lint-files` | - | Format check / write of package.json, .github, .agents, .configs, presets and examples. |
+| `make lint-filter` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
+| `make lint-fix` | `lint-fix-packages fmt-files fmt-scripts fmt-wiki` | Fix what lint-all checks: lint-fix-<pkg> for every package, fmt-files, fmt-scripts and fmt-wiki. |
+| `make lint-fix-boot` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
+| `make lint-fix-connectors` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
+| `make lint-fix-core` | `lint-fix-core-server` | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
+| `make lint-fix-core-server` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
+| `make lint-fix-core-worker` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
+| `make lint-fix-dev-configs` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
+| `make lint-fix-filter` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
+| `make lint-fix-helpers` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
+| `make lint-fix-inversion` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
+| `make lint-fix-kernel` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
+| `make lint-fix-packages` | `lint-fix-dev-configs lint-fix-inversion lint-fix-filter lint-fix-helpers lint-fix-boot lint-fix-kernel lint-fix-connectors lint-fix-core-worker lint-fix-core-server` | - |
+| `make lint-helpers` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
+| `make lint-inversion` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
+| `make lint-kernel` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
 | `make lint-packages` | `lint-dev-configs lint-inversion lint-filter lint-helpers lint-boot lint-kernel lint-connectors lint-core-worker lint-core-server` | lint-<pkg> for every package. |
-| `make lint-scripts` | - | Format check + bun check type-check of scripts/. |
-| `make lint-wiki` | - | Lint docs/wiki scripts and check its format. |
+| `make lint-scripts` | - | Format check + bun check type-check of scripts/ / format scripts/. |
+| `make lint-wiki` | - | Lint docs/wiki scripts and check its format / the same with --fix and write mode. |
 | `make okf-check` | - | Gate: OKF v0.2 conformance. |
 | `make okf-check-strict` | - | Gate: OKF v0.2 plus the house rules - links, style, coverage, freshness. |
 | `make okf-coverage` | - | Report bundle coverage against the source inventory. |
 | `make okf-gen` | - | Regenerate source-derived reference content. |
 | `make okf-viz` | - | Build the offline knowledge-graph explorer. |
-| `make preset-build` | - | Write the VULCAN preset (packages/core-server/dist/vulcan-preset) with this workspace's versions. |
+| `make preset-build` | - | Write the VULCAN preset (packages/core-server/dist/presets) with this workspace's versions. |
 | `make preset-smoke` | - | Gate: an app created from the packed preset typechecks, lints, tests and answers /api/hello. Needs a build. |
 | `make purity` | - | Gate: every entry claimed browser-pure has no node builtin or global. |
 | `make purity-boot` | - | Gate: one package's browser-pure entries. Needs a build. |
@@ -97,11 +104,10 @@ generated:
 | `make release` | - | Dispatch the release workflow per package, e.g. ARGS="kernel --mode patch". |
 | `make release-plan` | - | Print the release plan (dependency order), dispatch nothing. |
 | `make setup-hooks` | - | Configure git to use .githooks directory. |
-| `make sourcemaps-check` | - | - |
 | `make split-report` | - | Report hub files, stray types, missing barrels, long files, cycles (informational). |
 | `make surface-check` | - | Gate: the public surface equals the snapshot. |
 | `make surface-gen` | - | Snapshot every exported symbol into .agents/knowledge/reference/public-surface.md. |
-| `make test-all` | `test-inversion test-helpers test-boot test-kernel test-connectors test-core-worker test-core-server` | test-<pkg> for every package with a suite (BUN_TEST_FLAGS, default --parallel). |
+| `make test-all` | `test-dev-configs test-inversion test-helpers test-boot test-kernel test-connectors test-core-worker test-core-server` | test-<pkg> for every package with a suite (BUN_TEST_FLAGS, default --parallel). |
 | `make test-boot` | - | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |
 | `make test-connectors` | - | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |
 | `make test-core` | `test-core-server` | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |
@@ -113,8 +119,8 @@ generated:
 | `make test-inversion` | - | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |
 | `make test-kernel` | - | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |
 | `make test-scripts` | - | Run the repository gate scripts' own regression tests. |
+| `make tmp-leak-check` | - | test-all and test-scripts, then fail if the run left anything in the system temp or in .agents/local/tmp. |
 | `make update` | `install` | Force update all packages from NPM registry. |
-| `make update-all` | `install` | Force update all packages from NPM registry. |
 | `make update-boot` | - | Force update one package's dependencies from NPM. |
 | `make update-connectors` | - | Force update one package's dependencies from NPM. |
 | `make update-core` | `update-core-server` | Force update one package's dependencies from NPM. |

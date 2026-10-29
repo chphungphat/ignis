@@ -1,7 +1,7 @@
 {
   "name": "@venizia/dev-configs",
-  "version": "0.3.1",
-  "description": "Shareable development configurations for TypeScript projects: oxlint and oxfmt presets with per-rule builders, the ESLint naming-convention rule, the legacy ESLint flat config and Prettier presets, and TypeScript compiler options with critical decorator support (experimentalDecorators, emitDecoratorMetadata, useDefineForClassFields). Single source of truth for consistent code style, type checking, and build settings across monorepo packages.",
+  "version": "0.4.5",
+  "description": "Shareable development configurations for TypeScript projects: oxlint presets with per-rule builders, the ESLint naming-convention rule, the legacy ESLint flat config, and TypeScript compiler options with critical decorator support (experimentalDecorators, emitDecoratorMetadata, useDefineForClassFields). Single source of truth for consistent code style, type checking, and build settings across monorepo packages.",
   "keywords": [
     "build-tools",
     "bun",
@@ -29,10 +29,7 @@
     "monorepo",
     "monorepo-config",
     "nodejs",
-    "oxfmt",
     "oxlint",
-    "prettier",
-    "prettier-config",
     "settings",
     "shareable-config",
     "shared-config",
@@ -44,23 +41,31 @@
     "venizia"
   ],
   "homepage": "https://ignis.venizia.ai",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/VENIZIA-AI/ignis.git",
-    "directory": "packages/dev-configs"
-  },
   "bugs": {
     "url": "https://github.com/VENIZIA-AI/ignis/issues"
   },
+  "license": "MIT",
   "author": {
     "name": "VENIZIA AI Developer",
     "email": "developer@venizia.ai",
     "url": "https://venizia.ai"
   },
-  "license": "MIT",
-  "engines": {
-    "bun": ">=1.4"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VENIZIA-AI/ignis.git",
+    "directory": "packages/dev-configs"
   },
+  "bin": {
+    "devz": "./dist/cli/index.js"
+  },
+  "files": [
+    "README.md",
+    "LICENSE.md",
+    "dist",
+    "src/tsconfig",
+    "!**/__tests__",
+    "!**/*.tsbuildinfo"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -70,10 +75,6 @@
       "types": "./dist/compilers/index.d.ts",
       "default": "./dist/compilers/index.js"
     },
-    "./formatters": {
-      "types": "./dist/formatters/index.d.ts",
-      "default": "./dist/formatters/index.js"
-    },
     "./linters": {
       "types": "./dist/linters/index.d.ts",
       "default": "./dist/linters/index.js"
@@ -82,9 +83,17 @@
       "types": "./dist/linters/oxlint-presets.d.ts",
       "default": "./dist/linters/oxlint-presets.js"
     },
+    "./checks": {
+      "types": "./dist/checks/index.d.ts",
+      "default": "./dist/checks/index.js"
+    },
     "./testing": {
       "types": "./dist/testing/index.d.ts",
       "default": "./dist/testing/index.js"
+    },
+    "./testing/tmpdir-preload": {
+      "types": "./dist/testing/tmpdir-preload.d.ts",
+      "default": "./dist/testing/tmpdir-preload.js"
     },
     "./tsconfig.base.json": "./src/tsconfig/tsconfig.base.json",
     "./tsconfig.common.json": "./src/tsconfig/tsconfig.common.json",
@@ -92,41 +101,34 @@
     "./tsconfig.react.json": "./src/tsconfig/tsconfig.react.json",
     "./package.json": "./package.json"
   },
-  "files": [
-    "README.md",
-    "LICENSE.md",
-    "dist",
-    "src/tsconfig",
-    "!**/*.tsbuildinfo"
-  ],
   "publishConfig": {
     "access": "public"
   },
   "scripts": {
-    "force-update": "sh ./scripts/force-update.sh",
+    "force-update": "sh ../../scripts/build/force-update.sh",
     "prepublishOnly": "make rebuild"
   },
   "dependencies": {
     "@eslint/js": "^10.0.1",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-n": "^18.2.1",
-    "eslint-plugin-prettier": "^5.5.6",
-    "eslint-plugin-unicorn": "^74.0.0",
+    "eslint-plugin-n": "^18.5.0",
+    "eslint-plugin-unicorn": "^78.0.0",
     "typescript-eslint": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "eslint": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "typescript": "catalog:"
   },
   "peerDependencies": {
     "eslint": "^9.0.0 || ^10.0.0",
-    "oxfmt": ">=0.73.0",
-    "oxlint": ">=1.88.0",
+    "oxlint": ">=1.89.0",
     "oxlint-tsgolint": ">=7.0.2004",
-    "prettier": "^3.0.0",
     "typescript": "^5.0.0 || ^6.0.0"
   },
   "peerDependenciesMeta": {
     "eslint": {
-      "optional": true
-    },
-    "oxfmt": {
       "optional": true
     },
     "oxlint": {
@@ -135,20 +137,11 @@
     "oxlint-tsgolint": {
       "optional": true
     },
-    "prettier": {
-      "optional": true
-    },
     "typescript": {
       "optional": true
     }
   },
-  "devDependencies": {
-    "@types/bun": "catalog:",
-    "eslint": "catalog:",
-    "oxfmt": "catalog:",
-    "oxlint": "catalog:",
-    "oxlint-tsgolint": "catalog:",
-    "prettier": "catalog:",
-    "typescript": "catalog:"
+  "engines": {
+    "bun": ">=1.4.4"
   }
 }

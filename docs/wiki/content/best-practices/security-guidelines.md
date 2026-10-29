@@ -117,7 +117,6 @@ Configure model properties that should **never be returned** through repository 
 
 ```typescript
 @model({
-  type: 'entity',
   settings: {
     hiddenProperties: ['password', 'apiSecret', 'internalToken'],
   },
@@ -268,47 +267,55 @@ bun update
 
 Configure Cross-Origin Resource Sharing to control which domains can access your API.
 
+CORS is configured in the application config, where the framework installs it first, before the request id and the body limit. A response the framework produces itself, such as a `413`, then carries the headers too.
+
 **Default (Development):**
 ```typescript
-import { cors } from 'hono/cors';
-
 // Allow all origins (ONLY for development)
-this.getServer().use('*', cors());
+config: { middlewares: { cors: { enable: true, origin: '*' } } }
 ```
 
 **Production (Restrictive):**
 ```typescript
-import { cors } from 'hono/cors';
-
-this.getServer().use('/api/*', cors({
-  origin: ['https://yourdomain.com', 'https://app.yourdomain.com'],
-  allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-  allowHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
-  exposeHeaders: ['X-Request-ID'],
-  credentials: true,
-  maxAge: 86400, // Cache preflight for 24 hours
-}));
+config: {
+  middlewares: {
+    cors: {
+      enable: true,
+      path: '/api/*',
+      origin: ['https://yourdomain.com', 'https://app.yourdomain.com'],
+      allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+      allowHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
+      exposeHeaders: ['X-Request-ID'],
+      credentials: true,
+      maxAge: 86400, // Cache preflight for 24 hours
+    },
+  },
+}
 ```
 
 **Dynamic Origin Validation:**
 ```typescript
-this.getServer().use('/api/*', cors({
-  origin: (origin) => {
-    const allowedDomains = ['yourdomain.com', 'yourdomain.io'];
-    try {
-      const url = new URL(origin);
-      return allowedDomains.some(domain => url.hostname.endsWith(domain))
-        ? origin
-        : null;
-    } catch {
-      return null;
-    }
+config: {
+  middlewares: {
+    cors: {
+      enable: true,
+      path: '/api/*',
+      origin: (origin: string) => {
+        const allowedDomains = ['yourdomain.com', 'yourdomain.io'];
+        try {
+          const url = new URL(origin);
+          return allowedDomains.some((domain) => url.hostname.endsWith(domain)) ? origin : null;
+        } catch {
+          return null;
+        }
+      },
+    },
   },
-}));
+}
 ```
 
 > [!WARNING]
-> Never use `origin: '*'` with `credentials: true` in production. This is a security vulnerability.
+> `origin: '*'` with `credentials: true` is refused at boot: a browser rejects a wildcard origin on a credentialed request, and the pair is a security vulnerability.
 
 ## 8. Rate Limiting
 
@@ -321,15 +328,15 @@ import { createMiddleware } from 'hono/factory';
 const rateLimiter = (opts: { windowMs: number; max: number }) => {
   const requests = new Map<string, { count: number; resetAt: number }>();
 
-  return createMiddleware(async (c, next) => {
-    const ip = c.req.header('x-forwarded-for') ?? c.req.header('x-real-ip') ?? 'unknown';
+  return createMiddleware(async (context, next) => {
+    const ip = context.req.header('x-forwarded-for') ?? context.req.header('x-real-ip') ?? 'unknown';
     const now = Date.now();
     const record = requests.get(ip);
 
     if (!record || now > record.resetAt) {
       requests.set(ip, { count: 1, resetAt: now + opts.windowMs });
     } else if (record.count >= opts.max) {
-      return c.json({
+      return context.json({
         statusCode: 429,
         message: 'Too many requests. Please try again later.',
       }, 429);

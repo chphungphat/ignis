@@ -10,10 +10,10 @@ const LINE_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z \[(\w+)\] (\S
 /** Drains the shared ring first - bun runs all test files in one process, so earlier tests' lines would otherwise leak into `lines()`. */
 const collectingFlusher = async () => {
   const batches: Array<THfSinkBatch> = [];
-  const flusher = new HfLogFlusher({ sink: batch => batches.push(batch) });
+  const flusher = new HfLogFlusher({ sink: (batch) => batches.push(batch) });
   await flusher.flush();
   batches.length = 0;
-  const lines = () => batches.flatMap(batch => batch.lines);
+  const lines = () => batches.flatMap((batch) => batch.lines);
   return { flusher, batches, lines };
 };
 
@@ -207,7 +207,7 @@ describe('HfLogFlusher lifecycle and sinks', () => {
     HfLogger.get('SinkFail').log('info', HfLogger.encodeMessage('x'));
     await flusher.flush();
     console.error = originalError;
-    expect(errors.some(entry => entry.includes('[HfLogFlusher]'))).toBe(true);
+    expect(errors.some((entry) => entry.includes('[HfLogFlusher]'))).toBe(true);
   });
 
   test('invalid batchSize falls back with a warning', () => {
@@ -219,6 +219,18 @@ describe('HfLogFlusher lifecycle and sinks', () => {
     const flusher = new HfLogFlusher({ sink: () => {}, batchSize: 0 });
     console.warn = originalWarn;
     expect(flusher['batchSize']).toBe(1024);
-    expect(warnings.some(entry => entry.includes('Invalid batchSize'))).toBe(true);
+    expect(warnings.some((entry) => entry.includes('Invalid batchSize'))).toBe(true);
+  });
+});
+
+describe('HfLogger - an inherited property name is not a level', () => {
+  test('a level that only exists on Object.prototype is written as info', async () => {
+    const { flusher, lines } = await collectingFlusher();
+
+    HfLogger.get('Inherited').log('constructor' as never, HfLogger.encodeMessage('odd level'));
+    await flusher.flush();
+
+    expect(lines()).toHaveLength(1);
+    expect(lines()[0]).toMatch(/\[info\] Inherited odd level$/);
   });
 });

@@ -10,40 +10,41 @@ generated:
 
 > Generated from source - do not edit; run `make okf-gen`. Layout: [monorepo layout](/overview/monorepo-layout.md).
 
-**1077 source files across 9 packages.**
+**1120 source files across 9 packages.**
 
-## boot  (28 source files)
+## boot  (26 source files)
 
 | Subsystem | Files |
 |---|---|
 | `bun/` | 8 |
 | `generator/` | 7 |
-| `build-info/` | 6 |
-| `clis/` | 2 |
+| `build-info/` | 5 |
 | `common/` | 2 |
 | `vite/` | 2 |
+| `clis/` | 1 |
 
-## connectors  (228 source files)
+## connectors  (240 source files)
 
 | Subsystem | Files |
 |---|---|
-| `relational/` | 138 |
-| `search/` | 77 |
-| `http/` | 6 |
-| `common/` | 4 |
+| `relational/` | 141 |
+| `search/` | 78 |
+| `http/` | 7 |
+| `common/` | 6 |
+| `raw-sql/` | 5 |
 | `testing/` | 2 |
 
 ## core-server  (208 source files)
 
 | Subsystem | Files |
 |---|---|
-| `components/` | 163 |
+| `components/` | 162 |
 | `base/` | 21 |
 | `connectors/` | 14 |
 | `common/` | 3 |
 | `utilities/` | 3 |
 | `helpers/` | 2 |
-| `testing/` | 1 |
+| `testing/` | 2 |
 
 ## core-worker  (20 source files)
 
@@ -53,14 +54,15 @@ generated:
 | `applications/` | 4 |
 | `envelope/` | 4 |
 
-## dev-configs  (33 source files)
+## dev-configs  (54 source files)
 
 | Subsystem | Files |
 |---|---|
-| `linters/` | 25 |
-| `formatters/` | 3 |
+| `linters/` | 26 |
+| `checks/` | 11 |
+| `cli/` | 9 |
+| `testing/` | 5 |
 | `compilers/` | 2 |
-| `testing/` | 2 |
 
 ## filter  (9 source files)
 
@@ -69,26 +71,26 @@ generated:
 | `common/` | 4 |
 | `schemas/` | 4 |
 
-## helpers  (307 source files)
+## helpers  (313 source files)
 
 | Subsystem | Files |
 |---|---|
-| `modules/` | 275 |
+| `modules/` | 281 |
 | `common/` | 17 |
 | `utilities/` | 11 |
 
-## inversion  (33 source files)
+## inversion  (35 source files)
 
 | Subsystem | Files |
 |---|---|
-| `modules/` | 27 |
+| `modules/` | 29 |
 | `common/` | 5 |
 
-## kernel  (211 source files)
+## kernel  (215 source files)
 
 | Subsystem | Files |
 |---|---|
-| `base/` | 174 |
+| `base/` | 178 |
 | `helpers/` | 24 |
 | `common/` | 8 |
 | `utilities/` | 2 |

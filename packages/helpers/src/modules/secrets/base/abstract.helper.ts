@@ -27,7 +27,7 @@ interface IRawFetchResult {
 const DEFAULT_CLOCK: IClock = { now: () => Date.now() };
 const DEFAULT_TIMERS: ITimerAdapter = {
   set: (handler, ms) => setTimeout(handler, ms),
-  clear: handle => clearTimeout(handle as AnyType),
+  clear: (handle) => clearTimeout(handle as AnyType),
 };
 
 const DEFAULT_CACHE_TTL_SECONDS = 300;
@@ -103,7 +103,11 @@ export abstract class AbstractSecretsHelper extends BaseHelper implements ISecre
   async get<TValue>(opts: IGetSecretOptions<TValue>): Promise<TValue>;
   async get<TValue = string>(opts: IGetSecretOptions<TValue>): Promise<TValue> {
     const bundle = await this.getBundle({ path: opts.path });
-    const raw = opts.key ? bundle[opts.key] : (bundle as AnyType);
+    const raw = opts.key
+      ? Object.hasOwn(bundle, opts.key)
+        ? bundle[opts.key]
+        : undefined
+      : (bundle as AnyType);
     return (raw ?? opts.defaultValue) as TValue;
   }
 
@@ -194,7 +198,7 @@ export abstract class AbstractSecretsHelper extends BaseHelper implements ISecre
       this.timers.clear(existing);
     }
     const handle = this.timers.set(() => {
-      this.handleRenewal({ key: opts.key }).catch(error => {
+      this.handleRenewal({ key: opts.key }).catch((error) => {
         this.logger
           .for(this.armTimer.name)
           .error('Renewal handler crashed | key: %s | error: %s', opts.key, error);

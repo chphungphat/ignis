@@ -2,23 +2,16 @@
   "$schema": "http://json.schemastore.org/tsconfig",
   "extends": "@venizia/dev-configs/tsconfig.common.json",
   "compilerOptions": {
-    "outDir": "dist",
-    "rootDir": "src",
+    "module": "preserve",
+    "moduleResolution": "bundler",
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/*": ["./src/*"]
     },
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "useDefineForClassFields": false
+    "useDefineForClassFields": false,
+    "customConditions": ["node"]
   },
-  "include": [
-    "src"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "app_data"
-  ]
+  "include": ["src", "scripts"],
+  "exclude": ["node_modules", "dist", "app_data"]
 }

@@ -23,6 +23,17 @@ tags: [packages, filter, query, isomorphic, browser]
 sort direction constants (`Sorts`). It was extracted from the repository base that now lives in
 `kernel/src/base/repositories/` so the vocabulary can be shared with a browser data layer.
 
+`TFilter<T, F extends TFields<T>>` types `fields`, and the row a read returns follows it
+(`common/types.ts`): `TSelectedRow<T, F>` is `Pick<T, selected keys | the model's optional keys>`, the
+whole row when the selection is empty, has no `true` entry or is not a literal (`any` for a model
+with no keys). `TRow<T, R, F>` is `R` when the caller named it (`find<MyRow>`), else `TSelectedRow`;
+`unknown` is the "not named" marker, which is why every read signature defaults `R = unknown`.
+`TByIdFilter<T, F>` is the by-id filter (`where` omitted, `fields` typed). The kernel contract, the
+abstract repository, the relational, soft-deletable and search repositories and `HttpRepository`
+share the `find<R = unknown, const F extends TFields<T>>` shape, so an override with the old
+`<R = E>` shape stops compiling and a generic caller (`findById<DataObject>`) needs a cast. A field
+list kept in a constant needs `as const`. Pinned by `kernel/src/__tests__/repository-typed-fields.ts`.
+
 `common/order.ts` adds `parseOrderEntry(opts: { entry: string }): TParsedOrderEntry` - the one parser
 every relational and search dialect now shares for a `'field'`/`'field ASC|DESC'` order entry, and the
 `TSortDirection`/`TParsedOrderEntry` types it returns. See
@@ -121,14 +132,14 @@ It sits **beside** helpers in the dependency chain, not after it:
 
 ## Isomorphic by construction, and it is enforced
 
-The guard is **not** a per-package test - it is the centralized `scripts/purity/` tool that covers
+The guard is **not** a per-package test - it is the centralized `devz check purity` tool (`@venizia/dev-configs/checks`) that covers
 every entry point the monorepo claims is browser-pure (filter, inversion, helpers `/core` and
-`/common`, kernel, core-worker, connectors). `scripts/purity/manifest.ts` reads filter's own
-`exports` map, so both sub-paths land in the gate under both conditions - four rows, `.` and
-`./schemas` times ESM and CJS. Run it with `make purity-filter`, or `make purity` for all of them. It
+`/common`, kernel, core-worker, connectors). `scripts/checks/purity/manifest.ts` reads filter's own
+`exports` map, so both sub-paths land in the gate - two rows, `.` and
+`./schemas`. Run it with `make purity-filter`, or `make purity` for all of them. It
 probes `dist/`, so build the package first.
 
-`scripts/purity/probe.ts` shells out to the `bun build` CLI - not the in-process `Bun.build()`, which
+`packages/dev-configs/src/checks/purity/probe.ts` shells out to the `bun build` CLI - not the in-process `Bun.build()`, which
 resolves this workspace's symlinked dependencies to directories and dies - with
 `--target=browser --format=esm --env=disable --metafile=...`, then fails on any node builtin import,
 any unresolved external, or any Node global (`process.`, `__dirname`, `__filename`, `createRequire(`)

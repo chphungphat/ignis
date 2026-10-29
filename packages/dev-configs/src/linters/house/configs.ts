@@ -1,20 +1,31 @@
 import type { Linter } from 'eslint';
 import { namingConventionConfigs } from '../eslint';
+import { JSX_FILES } from '../jsx-files';
 import { reactNamingConventionConfigs } from '../react-eslint';
 import { HOUSE_PLUGIN_NAMESPACE } from './common';
+import { ConstClassValuesRule } from './const-class-values.rule';
 import { MaxParamsOwnRule } from './max-params-own.rule';
 import { NoLeakedRenderRule } from './no-leaked-render.rule';
 import { NoNewErrorRule } from './no-new-error.rule';
 import { houseEslintPlugin } from './plugin';
 
 const SOURCE_FILES = ['**/*.{ts,tsx,mts,cts}'];
-const JSX_FILES = ['**/*.{jsx,tsx}'];
 const TEST_FILES = ['**/__tests__/**', '**/*.test.{ts,tsx}', '**/*.spec.{ts,tsx}'];
+
+/**
+ * V-C-10: no explicit cast. `as const` is always allowed; `satisfies`, a generic or a narrower type
+ * replaces the rest.
+ */
+const NO_CAST_RULE = '@typescript-eslint/consistent-type-assertions';
 
 /**
  * The house rules: at most 5 positional parameters on a function we write, and errors thrown through
  * `getError` only. Tests are exempt from `no-new-error`: a test throws a plain `Error` on purpose, to
  * stand in for what a driver or a third-party library throws.
+ *
+ * Two rules only warn, so a project adopts them without failing its lint: `const-class-values` (V-C-08, a
+ * string-literal union in an exported declaration) and `consistent-type-assertions` (V-C-10, an `as X`
+ * cast). Tests are exempt from both: a test stubs what it does not build.
  */
 const houseRuleConfigs: Linter.Config[] = [
   {
@@ -23,9 +34,18 @@ const houseRuleConfigs: Linter.Config[] = [
     rules: {
       [MaxParamsOwnRule.NAME]: MaxParamsOwnRule.build(),
       [NoNewErrorRule.NAME]: NoNewErrorRule.build(),
+      [ConstClassValuesRule.NAME]: ConstClassValuesRule.build({ severity: 'warn' }),
+      [NO_CAST_RULE]: ['warn', { assertionStyle: 'never' }],
     },
   },
-  { files: TEST_FILES, rules: { [NoNewErrorRule.NAME]: 'off' } },
+  {
+    files: TEST_FILES,
+    rules: {
+      [NoNewErrorRule.NAME]: 'off',
+      [ConstClassValuesRule.NAME]: 'off',
+      [NO_CAST_RULE]: 'off',
+    },
+  },
 ];
 
 /**
@@ -33,7 +53,7 @@ const houseRuleConfigs: Linter.Config[] = [
  * everything oxlint cannot express. Run it next to `oxlintConfigs`.
  *
  * ```js
- * // .configs/eslint.config.mjs
+ * // .configs/lints/eslint.config.mjs
  * import { houseConfigs } from '@venizia/dev-configs/linters';
  *
  * export default houseConfigs;

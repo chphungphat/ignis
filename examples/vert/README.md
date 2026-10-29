@@ -59,7 +59,7 @@ To stop the services and drop their data, run `docker compose down -v`.
 |---|---|
 | Models | `src/models/entities/*.model.ts` - a table first, then `ModelFactory.defineEntity({ table, relations })` |
 | Relations | `sale-channel-product.model.ts`: `one(productTable)` reads its columns off the foreign key. `configuration.model.ts`: `modifier` names its columns, because `modified_by` has no foreign key |
-| Hidden columns, default filter | `user.model.ts` (`hiddenProperties`), `product.model.ts` (`defaultFilter`) |
+| Hidden columns, default filter | `user.model.ts` (`hiddenProperties`), `product.model.ts` (`query.filter`) |
 | Repositories | `src/repositories/*.repository.ts` - `@repository({ model, dataSource })` over an empty class, plus custom queries |
 | CRUD routes | `src/controllers/configuration.controller.ts` - `ControllerFactory.defineCrudController` with per-route authentication, a custom create body, and two overridden handlers |
 | Hand-written routes | `src/controllers/test/` (`defineRoute`, `bindRoute`, `@get`, `@post`) and `src/controllers/authorization-example/` |
@@ -144,3 +144,16 @@ component's `MetaLink` table.
 ## Next
 
 - [PGlite quickstart](../pglite-quickstart) - the same models, repositories and CRUD factory in one small app
+
+---
+
+<p align="center">
+  <a href="https://venizia.ai">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://venizia.ai/assets/logo-white.svg">
+      <img src="https://venizia.ai/assets/logo.svg" alt="VENIZIA" height="28">
+    </picture>
+  </a>
+  <br>
+  <sub>IGNIS is built and maintained by <a href="https://venizia.ai">VENIZIA</a>.</sub>
+</p>

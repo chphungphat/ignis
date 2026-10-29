@@ -1,6 +1,6 @@
 {
   "name": "@venizia/ignis-helpers",
-  "version": "0.3.2",
+  "version": "0.4.5",
   "description": "Production-ready TypeScript utility library: pluggable logging (winston or pino behind one ILogger contract), Redis single/cluster/sentinel with pub/sub, BullMQ/MQTT/Kafka message queues, MinIO/Disk/Bun-S3 object storage, AES-256/RSA/ECDH cryptography, Snowflake UID generation, cron scheduling, Socket.IO/WebSocket, TCP/TLS/UDP networking, HTTP clients, secrets/Vault, worker thread pools, and environment management. Sub-path imports isolate optional peer dependencies so the root barrel never forces a peer into your bundle.",
   "keywords": [
     "aes",
@@ -75,174 +75,171 @@
     "worker-thread"
   ],
   "homepage": "https://ignis.venizia.ai",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/VENIZIA-AI/ignis.git",
-    "directory": "packages/helpers"
-  },
   "bugs": {
     "url": "https://github.com/VENIZIA-AI/ignis/issues"
   },
+  "license": "MIT",
   "author": {
     "name": "VENIZIA AI Developer",
     "email": "developer@venizia.ai",
     "url": "https://venizia.ai"
   },
-  "license": "MIT",
-  "engines": {
-    "bun": ">=1.4"
-  },
-  "exports": {
-    ".": {
-      "types": "./dist/cjs/index.d.ts",
-      "import": "./dist/esm/index.js",
-      "require": "./dist/cjs/index.js",
-      "default": "./dist/cjs/index.js"
-    },
-    "./common": {
-      "types": "./dist/cjs/common/index.d.ts",
-      "import": "./dist/esm/common/index.js",
-      "require": "./dist/cjs/common/index.js",
-      "default": "./dist/cjs/common/index.js"
-    },
-    "./core": {
-      "types": "./dist/cjs/core.d.ts",
-      "import": "./dist/esm/core.js",
-      "require": "./dist/cjs/core.js",
-      "default": "./dist/cjs/core.js"
-    },
-    "./uuid": {
-      "types": "./dist/cjs/uuid.d.ts",
-      "import": "./dist/esm/uuid.js",
-      "require": "./dist/cjs/uuid.js",
-      "default": "./dist/cjs/uuid.js"
-    },
-    "./temporal": {
-      "types": "./dist/cjs/temporal.d.ts",
-      "import": "./dist/esm/temporal.js",
-      "require": "./dist/cjs/temporal.js",
-      "default": "./dist/cjs/temporal.js"
-    },
-    "./socket-io": {
-      "types": "./dist/cjs/modules/socket/socket-io/index.d.ts",
-      "import": "./dist/esm/modules/socket/socket-io/index.js",
-      "require": "./dist/cjs/modules/socket/socket-io/index.js",
-      "default": "./dist/cjs/modules/socket/socket-io/index.js"
-    },
-    "./bullmq": {
-      "types": "./dist/cjs/modules/queue/bullmq/index.d.ts",
-      "import": "./dist/esm/modules/queue/bullmq/index.js",
-      "require": "./dist/cjs/modules/queue/bullmq/index.js",
-      "default": "./dist/cjs/modules/queue/bullmq/index.js"
-    },
-    "./mqtt": {
-      "types": "./dist/cjs/modules/queue/mqtt/index.d.ts",
-      "import": "./dist/esm/modules/queue/mqtt/index.js",
-      "require": "./dist/cjs/modules/queue/mqtt/index.js",
-      "default": "./dist/cjs/modules/queue/mqtt/index.js"
-    },
-    "./minio": {
-      "types": "./dist/cjs/modules/storage/minio/index.d.ts",
-      "import": "./dist/esm/modules/storage/minio/index.js",
-      "require": "./dist/cjs/modules/storage/minio/index.js",
-      "default": "./dist/cjs/modules/storage/minio/index.js"
-    },
-    "./bun-s3": {
-      "types": "./dist/cjs/modules/storage/bun-s3/index.d.ts",
-      "import": "./dist/esm/modules/storage/bun-s3/index.js",
-      "require": "./dist/cjs/modules/storage/bun-s3/index.js",
-      "default": "./dist/cjs/modules/storage/bun-s3/index.js"
-    },
-    "./axios": {
-      "types": "./dist/cjs/modules/network/http-request/fetcher/axios-fetcher.d.ts",
-      "import": "./dist/esm/modules/network/http-request/fetcher/axios-fetcher.js",
-      "require": "./dist/cjs/modules/network/http-request/fetcher/axios-fetcher.js",
-      "default": "./dist/cjs/modules/network/http-request/fetcher/axios-fetcher.js"
-    },
-    "./cron": {
-      "types": "./dist/cjs/modules/cron/index.d.ts",
-      "import": "./dist/esm/modules/cron/index.js",
-      "require": "./dist/cjs/modules/cron/index.js",
-      "default": "./dist/cjs/modules/cron/index.js"
-    },
-    "./kafka": {
-      "types": "./dist/cjs/modules/queue/kafka/index.d.ts",
-      "import": "./dist/esm/modules/queue/kafka/index.js",
-      "require": "./dist/cjs/modules/queue/kafka/index.js",
-      "default": "./dist/cjs/modules/queue/kafka/index.js"
-    },
-    "./hashicorp-vault": {
-      "types": "./dist/cjs/modules/secrets/hashicorp/index.d.ts",
-      "import": "./dist/esm/modules/secrets/hashicorp/index.js",
-      "require": "./dist/cjs/modules/secrets/hashicorp/index.js",
-      "default": "./dist/cjs/modules/secrets/hashicorp/index.js"
-    },
-    "./dotenv-vault": {
-      "types": "./dist/cjs/modules/secrets/dotenv/index.d.ts",
-      "import": "./dist/esm/modules/secrets/dotenv/index.js",
-      "require": "./dist/cjs/modules/secrets/dotenv/index.js",
-      "default": "./dist/cjs/modules/secrets/dotenv/index.js"
-    },
-    "./winston": {
-      "types": "./dist/cjs/modules/logger/winston/index.d.ts",
-      "import": "./dist/esm/modules/logger/winston/index.js",
-      "require": "./dist/cjs/modules/logger/winston/index.js",
-      "default": "./dist/cjs/modules/logger/winston/index.js"
-    },
-    "./pino": {
-      "types": "./dist/cjs/modules/logger/pino/index.d.ts",
-      "import": "./dist/esm/modules/logger/pino/index.js",
-      "require": "./dist/cjs/modules/logger/pino/index.js",
-      "default": "./dist/cjs/modules/logger/pino/index.js"
-    },
-    "./package.json": "./package.json"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VENIZIA-AI/ignis.git",
+    "directory": "packages/helpers"
   },
   "files": [
     "README.md",
     "LICENSE.md",
     "dist",
-    "!/**/tests",
-    "!/**/dist/tests",
-    "!/**/__tests__",
+    "!**/__tests__",
     "!**/*.tsbuildinfo"
   ],
+  "sideEffects": [
+    "./dist/esm/index.js"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/esm/index.d.ts",
+      "default": "./dist/esm/index.js"
+    },
+    "./common": {
+      "types": "./dist/esm/common/index.d.ts",
+      "default": "./dist/esm/common/index.js"
+    },
+    "./core": {
+      "types": "./dist/esm/core.d.ts",
+      "default": "./dist/esm/core.js"
+    },
+    "./uuid": {
+      "types": "./dist/esm/uuid.d.ts",
+      "default": "./dist/esm/uuid.js"
+    },
+    "./temporal": {
+      "types": "./dist/esm/temporal.d.ts",
+      "default": "./dist/esm/temporal.js"
+    },
+    "./socket-io": {
+      "types": "./dist/esm/modules/socket/socket-io/index.d.ts",
+      "default": "./dist/esm/modules/socket/socket-io/index.js"
+    },
+    "./socket-io/client": {
+      "types": "./dist/esm/modules/socket/socket-io/browser.d.ts",
+      "default": "./dist/esm/modules/socket/socket-io/browser.js"
+    },
+    "./bullmq": {
+      "types": "./dist/esm/modules/queue/bullmq/index.d.ts",
+      "default": "./dist/esm/modules/queue/bullmq/index.js"
+    },
+    "./mqtt": {
+      "types": "./dist/esm/modules/queue/mqtt/index.d.ts",
+      "default": "./dist/esm/modules/queue/mqtt/index.js"
+    },
+    "./minio": {
+      "types": "./dist/esm/modules/storage/minio/index.d.ts",
+      "default": "./dist/esm/modules/storage/minio/index.js"
+    },
+    "./bun-s3": {
+      "types": "./dist/esm/modules/storage/bun-s3/index.d.ts",
+      "default": "./dist/esm/modules/storage/bun-s3/index.js"
+    },
+    "./axios": {
+      "types": "./dist/esm/modules/network/http-request/fetcher/axios-fetcher.d.ts",
+      "default": "./dist/esm/modules/network/http-request/fetcher/axios-fetcher.js"
+    },
+    "./cron": {
+      "types": "./dist/esm/modules/cron/index.d.ts",
+      "default": "./dist/esm/modules/cron/index.js"
+    },
+    "./kafka": {
+      "types": "./dist/esm/modules/queue/kafka/index.d.ts",
+      "default": "./dist/esm/modules/queue/kafka/index.js"
+    },
+    "./hashicorp-vault": {
+      "types": "./dist/esm/modules/secrets/hashicorp/index.d.ts",
+      "default": "./dist/esm/modules/secrets/hashicorp/index.js"
+    },
+    "./dotenv-vault": {
+      "types": "./dist/esm/modules/secrets/dotenv/index.d.ts",
+      "default": "./dist/esm/modules/secrets/dotenv/index.js"
+    },
+    "./winston": {
+      "types": "./dist/esm/modules/logger/winston/index.d.ts",
+      "default": "./dist/esm/modules/logger/winston/index.js"
+    },
+    "./pino": {
+      "types": "./dist/esm/modules/logger/pino/index.d.ts",
+      "default": "./dist/esm/modules/logger/pino/index.js"
+    },
+    "./package.json": "./package.json"
+  },
   "publishConfig": {
     "access": "public"
   },
-  "sideEffects": [
-    "./dist/cjs/index.js",
-    "./dist/esm/index.js"
-  ],
   "scripts": {
-    "force-update": "sh ./scripts/force-update.sh",
+    "force-update": "sh ../../scripts/build/force-update.sh",
     "prepublishOnly": "make rebuild"
   },
   "dependencies": {
-    "zod": "catalog:",
     "@venizia/ignis-inversion": "workspace:*",
-    "reflect-metadata": "catalog:"
+    "reflect-metadata": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@dotenvx/dotenvx": "^2.38.2",
+    "@hono/zod-openapi": "catalog:",
+    "@platformatic/kafka": "^2.14.0",
+    "@socket.io/redis-adapter": "catalog:",
+    "@socket.io/redis-emitter": "catalog:",
+    "@types/bun": "catalog:",
+    "@types/luxon": "^3.7.6",
+    "@venizia/dev-configs": "workspace:*",
+    "axios": "^1.20.0",
+    "bullmq": "catalog:",
+    "cron": "^4.4.0",
+    "dayjs": "catalog:",
+    "eslint": "catalog:",
+    "hono": "catalog:",
+    "ioredis": "catalog:",
+    "luxon": "^3.7.2",
+    "minio": "^8.0.7",
+    "mqtt": "^5.16.1",
+    "node-vault": "^0.13.0",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "pino": "^10.4.0",
+    "pino-pretty": "^13.2.0",
+    "pino-roll": "^4.0.0",
+    "socket.io": "catalog:",
+    "socket.io-client": "catalog:",
+    "tsc-alias": "catalog:",
+    "typescript": "catalog:",
+    "winston": "^3.19.0",
+    "winston-daily-rotate-file": "^5.0.0",
+    "winston-transport": "^4.9.0"
   },
   "peerDependencies": {
-    "hono": "^4.12.30",
-    "winston": "^3.17.0",
-    "winston-daily-rotate-file": "^5.0.0",
-    "winston-transport": "^4.9.0",
+    "@dotenvx/dotenvx": "^2.38.2",
+    "@platformatic/kafka": "^2.14.0",
     "@socket.io/redis-adapter": "^8.3.0",
     "@socket.io/redis-emitter": "^5.1.0",
-    "axios": "^1.16.1",
-    "bullmq": "^5.80.8",
-    "cron": "^4.3.3",
-    "minio": "^8.0.6",
-    "mqtt": "^5.15.2",
-    "socket.io": "^4.8.1",
-    "socket.io-client": "^4.8.1",
-    "@platformatic/kafka": "^2.6.1",
-    "node-vault": "^0.12.0",
-    "@dotenvx/dotenvx": "^2.14.0",
-    "pino": "^10.3.1",
-    "pino-pretty": "^13.1.3",
+    "axios": "^1.20.0",
+    "bullmq": "^6.4.0",
+    "cron": "^4.4.0",
+    "hono": "^4.13.13",
+    "ioredis": "^6.0.0",
+    "minio": "^8.0.7",
+    "mqtt": "^5.16.1",
+    "node-vault": "^0.13.0",
+    "pino": "^10.4.0",
+    "pino-pretty": "^13.2.0",
     "pino-roll": "^4.0.0",
-    "ioredis": "^5.11.1"
+    "socket.io": "^4.8.4",
+    "socket.io-client": "^4.8.4",
+    "winston": "^3.19.0",
+    "winston-daily-rotate-file": "^5.0.0",
+    "winston-transport": "^4.9.0"
   },
   "peerDependenciesMeta": {
     "@socket.io/redis-adapter": {
@@ -306,38 +303,7 @@
       "optional": true
     }
   },
-  "devDependencies": {
-    "@dotenvx/dotenvx": "^2.23.0",
-    "@hono/zod-openapi": "catalog:",
-    "@platformatic/kafka": "^2.11.0",
-    "@socket.io/redis-adapter": "catalog:",
-    "@socket.io/redis-emitter": "catalog:",
-    "@types/bun": "catalog:",
-    "@types/luxon": "^3.7.5",
-    "@venizia/dev-configs": "workspace:*",
-    "axios": "^1.20.0",
-    "bullmq": "catalog:",
-    "cron": "^4.4.0",
-    "dayjs": "catalog:",
-    "eslint": "catalog:",
-    "hono": "catalog:",
-    "ioredis": "catalog:",
-    "luxon": "^3.7.2",
-    "minio": "^8.0.7",
-    "mqtt": "^5.15.2",
-    "node-vault": "^0.12.0",
-    "oxfmt": "catalog:",
-    "oxlint": "catalog:",
-    "oxlint-tsgolint": "catalog:",
-    "pino": "^10.3.1",
-    "pino-pretty": "^13.1.3",
-    "pino-roll": "^4.0.0",
-    "socket.io": "catalog:",
-    "socket.io-client": "catalog:",
-    "tsc-alias": "catalog:",
-    "typescript": "catalog:",
-    "winston": "^3.19.0",
-    "winston-daily-rotate-file": "^5.0.0",
-    "winston-transport": "^4.9.0"
+  "engines": {
+    "bun": ">=1.4"
   }
 }

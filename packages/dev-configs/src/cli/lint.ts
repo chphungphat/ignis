@@ -1,0 +1,154 @@
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, extname, join } from 'node:path';
+
+const LINT_CONFIG = '.configs/lints/oxlint.config.mts';
+const ESLINT_CONFIG = '.configs/lints/eslint.config.mjs';
+const LINT_IGNORE_FILE = '.configs/lints/.ignore';
+const FORMAT_IGNORE_FILE = '.configs/formatters/.ignore';
+const ESLINT_CACHE = ['--cache', '--cache-location', 'node_modules/.cache/eslint/'];
+const LINTED_EXTENSIONS = new Set(['.ts', '.tsx', '.mts', '.js', '.mjs']);
+/** What `bun fmt` formats: the code, JSON (package.json keys are sorted), YAML, CSS, HTML and Vue - not Markdown. */
+const FORMATTED_EXTENSIONS = new Set([
+  ...LINTED_EXTENSIONS,
+  '.json',
+  '.jsonc',
+  '.yml',
+  '.yaml',
+  '.css',
+  '.html',
+  '.vue',
+]);
+const FORMAT_GLOB = '**/*.{ts,mts,tsx,js,mjs,json,jsonc,yml,yaml,css,html,vue}';
+const FIX_FLAG = '--fix';
+
+/** One tool call: the tool name and its arguments, run from the project root. */
+export interface ILintStep {
+  tool: string;
+  args: string[];
+}
+
+/**
+ * `devz lint [--fix] [files]`: oxlint, then ESLint, then `bun fmt`, from the project's
+ * `.configs/lints/` and `.configs/formatters/.ignore`. `bun fmt` takes its options from the `[fmt]` table
+ * of the nearest `bunfig.toml`. With no file it checks the whole project; with files it handles only
+ * those, as a pre-commit hook passes them.
+ */
+export class LintCommand {
+  /**
+   * The patterns of an ignore file, one per line, `#` comments and blank lines skipped. An ignore
+   * file resolves its patterns from its own folder, so they go on the command line instead, which
+   * resolves from the project root.
+   */
+  static readIgnore(opts: { root: string; file: string }): string[] {
+    const path = join(opts.root, opts.file);
+    if (!existsSync(path)) {
+      return [];
+    }
+
+    return readFileSync(path, 'utf8')
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line !== '' && !line.startsWith('#'));
+  }
+
+  /**
+   * The tool calls for these arguments, in order; empty when a file list holds nothing to lint or
+   * format. oxlint and ESLint take the code files; `bun fmt` takes those and the other formatted types.
+   */
+  static plan(opts: { root: string; args: string[] }): ILintStep[] {
+    const fix = opts.args[0] === FIX_FLAG;
+    const paths = fix ? opts.args.slice(1) : opts.args;
+    const whole = paths.length === 0;
+    const files = paths.filter((path) => LINTED_EXTENSIONS.has(extname(path)));
+    const formatted = paths.filter((path) => FORMATTED_EXTENSIONS.has(extname(path)));
+
+    if (!whole && formatted.length === 0) {
+      return [];
+    }
+
+    const targets = whole ? ['.'] : files;
+    const lintIgnore = LintCommand.readIgnore({ root: opts.root, file: LINT_IGNORE_FILE }).flatMap(
+      (pattern) => ['--ignore-pattern', pattern],
+    );
+    const formatIgnore = LintCommand.readIgnore({
+      root: opts.root,
+      file: FORMAT_IGNORE_FILE,
+    }).flatMap((pattern) => ['--ignore-pattern', pattern]);
+    const unmatched = whole ? [] : ['--no-error-on-unmatched-pattern'];
+    const eslintQuiet = whole ? [] : ['--no-warn-ignored'];
+
+    const linters: ILintStep[] = [
+      {
+        tool: 'oxlint',
+        args: [
+          '-c',
+          LINT_CONFIG,
+          ...lintIgnore,
+          ...unmatched,
+          fix ? FIX_FLAG : '--deny-warnings',
+          ...targets,
+        ],
+      },
+      {
+        tool: 'eslint',
+        args: [
+          '-c',
+          ESLINT_CONFIG,
+          ...ESLINT_CACHE,
+          ...eslintQuiet,
+          ...lintIgnore,
+          ...(fix ? [FIX_FLAG] : []),
+          ...targets,
+        ],
+      },
+    ];
+    const formatter: ILintStep = {
+      tool: 'bun',
+      args: [
+        'fmt',
+        '--no-script',
+        ...unmatched,
+        ...formatIgnore,
+        ...(fix ? [] : ['--check']),
+        ...(whole ? [FORMAT_GLOB] : formatted),
+      ],
+    };
+
+    return whole || files.length > 0 ? [...linters, formatter] : [formatter];
+  }
+
+  /** The tool's binary in the nearest `node_modules/.bin`, else its bare name for PATH to find. */
+  static resolveTool(opts: { root: string; tool: string }): string {
+    let dir = opts.root;
+    while (true) {
+      const candidate = join(dir, 'node_modules', '.bin', opts.tool);
+      if (existsSync(candidate)) {
+        return candidate;
+      }
+
+      const parent = dirname(dir);
+      if (parent === dir) {
+        return opts.tool;
+      }
+      dir = parent;
+    }
+  }
+
+  /** Runs the plan in order and stops at the first tool that fails; returns the exit code. */
+  static async run(opts: { root: string; args: string[] }): Promise<number> {
+    for (const step of LintCommand.plan(opts)) {
+      const child = Bun.spawn({
+        cmd: [LintCommand.resolveTool({ root: opts.root, tool: step.tool }), ...step.args],
+        cwd: opts.root,
+        stdio: ['inherit', 'inherit', 'inherit'],
+      });
+      const exitCode = await child.exited;
+
+      if (exitCode !== 0) {
+        return exitCode;
+      }
+    }
+
+    return 0;
+  }
+}

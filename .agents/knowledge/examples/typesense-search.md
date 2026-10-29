@@ -38,7 +38,7 @@ under `@repository({ model, dataSource })`).
 ```bash
 docker compose up -d       # Typesense, host port 18108 -> container 8108
 bun install
-bun run start                # http://localhost:3000/api/articles, explorer at /api/doc/explorer
+bun run server:dev                # http://localhost:3000/api/articles, explorer at /api/doc/explorer
 bun test                      # smoke test: skips itself (test.skipIf) when Typesense is unreachable
 ```
 
@@ -48,8 +48,7 @@ bun test                      # smoke test: skips itself (test.skipIf) when Type
   Postgres entity where an id is generated.
 - `/articles/multi-search` always exists, even with one collection - it is the cross-collection
   route the factory always registers.
-- This example's `bun test` needs `docker compose up -d` first; it is not in the `SMOKE_EXAMPLES`
-  list of `scripts/examples.ts`, so it runs locally, not in CI.
+- This example's `bun test` needs `docker compose up -d` first; it runs locally, not in CI.
 
 ## Related
 - [Typesense search connector](/architecture/search-typesense.md)

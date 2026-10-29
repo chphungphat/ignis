@@ -5,7 +5,7 @@ An IGNIS application that answers the same kind of request over two transports: 
 
 ```bash
 bun install
-bun run start
+bun run server:dev
 ```
 
 The app listens on `http://localhost:3000` (set `PORT` to change it). Browse the REST API at
@@ -92,14 +92,27 @@ re-exports the generated names; controller code imports from there, never from `
 
 ## Where the data goes
 
-`bun run start` logs in `app_data/logs`. `app_data/` is gitignored.
+`bun run server:dev` logs in `app_data/logs`. `app_data/` is gitignored.
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `APP_ENV_LOGGER_FOLDER_PATH` | `./app_data/logs`, set by the `start` script | Unset: console logging only |
+| `APP_ENV_LOGGER_FOLDER_PATH` | `./app_data/logs`, set by the `server:dev` script | Unset: console logging only |
 | `PORT` | `3000` | The port the server listens on |
 
 ## Next
 
 - [PGlite quickstart](../pglite-quickstart) - REST CRUD with a relation
 - [`vert`](../vert) - the production reference: authentication, authorization, transactions
+
+---
+
+<p align="center">
+  <a href="https://venizia.ai">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://venizia.ai/assets/logo-white.svg">
+      <img src="https://venizia.ai/assets/logo.svg" alt="VENIZIA" height="28">
+    </picture>
+  </a>
+  <br>
+  <sub>IGNIS is built and maintained by <a href="https://venizia.ai">VENIZIA</a>.</sub>
+</p>

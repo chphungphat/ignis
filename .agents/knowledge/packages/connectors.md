@@ -17,7 +17,7 @@ tags: [packages, connectors, drizzle, relational, search, browser]
 - [Two ways to declare a model, both supported](#two-ways-to-declare-a-model-both-supported)
 - [What it owns](#what-it-owns)
 - [Recursive tree SQL](#recursive-tree-sql)
-- [`scopeFilter` - a row scope, relational only](#scopefilter---a-row-scope-relational-only)
+- [`access` - a row scope, relational only](#access---a-row-scope-relational-only)
 - [Every published sub-path is probed, and eight rows are waived](#every-published-sub-path-is-probed-and-eight-rows-are-waived)
 - [Why the PGlite row uses `external`](#why-the-pglite-row-uses-external)
 - [A connectors-only process logs to the console](#a-connectors-only-process-logs-to-the-console)
@@ -32,12 +32,11 @@ reaches a backing engine. Wave 3 of the kernel refactor carved it out of
 It depends on `kernel`, `filter`, `helpers`, and `inversion`, and sits between `kernel` and `core`:
 `dev-configs -> inversion -> {filter, helpers} -> kernel -> connectors -> core` (`boot` is a leaf off
 `helpers` that only applications consume). `make connectors` needs `kernel`; `make core` needs
-`connectors`. It ships a **dual CJS + ESM build** - `dist/cjs` plus `dist/esm`, with every one of its
-`exports` entries carrying both `import` and `require` - as `kernel`, `inversion`, `filter`,
-`helpers`, and `boot` do. The ESM pass in `make build` is not cosmetic: it exists for the
-browser-purity claim below, whose gate refuses any claimed sub-path that publishes no `import`
-condition, because a bundler would otherwise fall back to the CommonJS entry and meet a bare
-`require()`.
+`connectors`. It ships **ES modules only** (`dist/esm`), with every one of its
+`exports` entries carrying `types` and `default` - as `kernel`, `inversion`, `filter`,
+`helpers`, and `boot` do. The ES module output is what the browser-purity claim below rests on: its
+gate refuses any claimed sub-path that publishes no runtime entry in `dist/esm`, so a bundler never
+meets a bare `require()`.
 
 `core-worker` does NOT depend on it. A browser application that wants a database installs this
 package directly - see [browser-bff](/examples/browser-bff.md).
@@ -88,7 +87,7 @@ The load-bearing decision is that a list with no `Content-Range` has NO total, r
 rather than folded into the page length - a count of 1 for a table of 7000 reads healthy everywhere
 it is consumed. Generated CRUD routes always send the header; a hand-written `respond()` need not,
 which is when it fires. `countPath` is opt-in for an API that publishes a count route, because one
-publishes `/count`, another `/search/count`, and another deleted it.
+publishes `/count`, another `/search/count`, and another deleted it. `findOnePath` is opt-in for the same reason: `defineCrudController` generates `GET /find-one`, which answers a missing row with HTTP 200 and no row (the connector always sends `x-request-count-data: false`, so the body is the bare row or `null`), and the connector reads it with `shape: 'one'` and returns `rs.data ?? null`; without it `findOne` asks the list route with `limit: 1`.
 
 An empty page is `records */N` - the total present, the range absent - and reads as that total; the
 start comes from the filter's `skip`/`offset`, the rule the server used. Missing it made `count()`
@@ -160,7 +159,7 @@ test suite if one exists.
 does (see [Relational connector](/architecture/relational-connector.md)), so
 `spyOn(repository, 'beginTransaction').mockResolvedValue(new PostgresTransactionDouble())` behaves by
 the same already-ended and rollback-after-failure rules a real handle would, with no cast needed at
-the call site. It imports no driver: `scripts/purity/manifest.ts` measures the entry like every other
+the call site. It imports no driver: `scripts/checks/purity/manifest.ts` measures the entry like every other
 sub-path (`connectors/testing [import] 44.4 KB`), even though nothing ships it to a browser on
 purpose - it exists for `bun test`, not for an application bundle.
 
@@ -176,14 +175,16 @@ controllers (`AbstractSearchController`, `SearchControllerFactory`, `defineSearc
 `ISearchControllerOptions`, `ISearchCustomizableRoutes`) are NOT exported from them any more, nor
 from the package root: only `./search/controllers` and `./typesense/controllers` carry them, and only
 those two import `@hono/zod-openapi`. `./http` loads with no hono and no `@hono/zod-openapi` either.
-What each sub-path may need is pinned per sub-path in `scripts/clean-install/manifest.ts` and proved
+What each sub-path may need is pinned per sub-path in `scripts/checks/clean-install/manifest.ts` and proved
 by `make clean-install-connectors` - see [release and publish](/process/release-publish.md).
 
 | Sub-path | Source | Engine peer | Bundles for a browser |
 |---|---|---|---|
 | `.` | `relational/core` + `search/core` | none | yes |
 | `/relational` | `relational/core` | none | yes |
-| `/postgres` | `relational/postgres` | `drizzle-orm/pg-core` only | yes |
+| `/postgres` | `common` | `AbstractDriverDataSource` (driver wiring, close once, secret rotation, drain), `IConnectorDriver`, the scope filter |
+| `raw-sql` | `BaseRawSqlDataSource`, `BaseRawSqlRepository`, `IRawSqlConnector` (`execute(query)` returns `{ rows }`), `TRawSqlDriver` - for an engine that only runs SQL; published as `./raw-sql`; no engine connector ships |
+| `relational/postgres` | `drizzle-orm/pg-core` only | yes |
 | `/postgres/node-postgres` | `NodePostgresDriver` | `pg` | no - `pg` requires `util/types` |
 | `/postgres/postgres-js` | `PostgresJsDriver` | `postgres` | no - `postgres` requires `tls` |
 | `/postgres/pglite` | `PGliteDriver` | `@electric-sql/pglite` | yes, with the vendor externalised |
@@ -327,6 +328,14 @@ the dialect off the table it is handed. For the depth, read
 [SQLite connector](/architecture/sqlite-connector.md), and
 [Typesense search connector](/architecture/search-typesense.md).
 
+`generatePrincipalColumnDefs` and `enrichPrincipal` (Postgres and SQLite) add a `{discriminator}Id` and a
+`{discriminator}Type` column. `isNullableId` (default `false`) controls the id column only.
+`isNullableDiscriminator` (default `true`) leaves the type column nullable with a `''` default; `false`
+makes it `NOT NULL` with no default, so an insert without the type is rejected and `$inferInsert`
+requires it. An explicit `defaultPolymorphic` keeps its default alongside `NOT NULL` (the insert type
+still requires the value). Only `false` makes the column required: `null` or `undefined` from an untyped
+caller means nullable. A widened `boolean` flag takes the `NOT NULL` type branch.
+
 ## Recursive tree SQL
 
 `relational/core/repositories/sqls/recursive-tree.ts` exports `RecursiveTreeSql.walk(opts)`, which
@@ -388,11 +397,11 @@ the 14 forgot and hung a production process walking an unbounded parent chain.
   `@venizia/ignis-helpers`' `modules/tree` - see [helpers](/packages/helpers.md). They are pure and
   carry no Drizzle dependency, which is why they are not here too.
 
-## `scopeFilter` - a row scope, relational only
+## `access` - a row scope, relational only
 
-`@model` settings.scopeFilter (kernel) ANDs a per-request `where` into every relational read, plus
+`@model` settings.access (kernel) ANDs a per-request `where` into every relational read, plus
 `update` and `delete`, including `restore()` - see `RelationalBaseRepository.applyScopeFilter` in
-`relational/core/repositories/core/base.ts`. It is a second, separate filter from `defaultFilter`:
+`relational/core/repositories/core/base.ts`. It is a second, separate filter from `query.filter`:
 `shouldSkipDefaultFilter` never removes it, because that flag is what soft-delete's `restore()` uses
 to reach past `deletedAt: null`, and reusing one filter for both would hand `restore()` the same
 reach into another caller's row scope. `resolve()` returning null/undefined denies by default
@@ -410,19 +419,30 @@ also unscope every ordinary user whose `resolve()` happens to return nothing. `U
 object, so no request body, query string, or header can ever produce it - the bypass can only come
 from code the application wrote and reviewed.
 
-**`scopeFilter` NEVER covers `create`.** Scope is a `where` AND-ed into the query and an `INSERT` has
-no `where` to AND into - `applyDefaultFilter` appears only in `_update` and `_delete`
-(`persistable.ts`), never in `_create`. Structural, not an omission, and it means NOTHING stops a
-caller inserting a row owned by somebody else: validating ownership at insert time is the
-application's job, permanently.
+**The write guard covers `create` and an update payload that names a scope column.** Scope is a
+`where` AND-ed into the query and an `INSERT` has no `where`, so the guard is a separate check
+(`relational/core/repositories/common/scope-write-guard.ts`, called from `_create` and `_update`
+through `guardScopedWrite`). It reads the columns and allowed values from the resolved `where`
+(equality, `eq`, `inq`/`in`, arrays, `and`, and an `or` whose branches all constrain one column - the shared-rows scope - read as the union of its values) and holds every written row to them; a row
+that disagrees, or lacks the column on create, throws a 403 `core.repository.scope_write_denied`
+naming the entity and the column, never a value, and writes nothing (all of `createAll`). Settings
+on `access`: `access.write.mode` `reject` (default) or `assign` (fills an ABSENT column from an
+equality scope; a present, disagreeing value is still refused), `access.write.sharedRows` (the only way a restricted caller may write `null`, omit the scope column, or update or delete a shared row; a null branch in an `or` scope grants READING shared rows, never writing them: `ScopeWriteGuard.mutationWhere` removes the null branch from the scope that `_update` and `_delete` merge in, and refuses a scope shape it cannot read),
+`access.columns` (validated at boot against the model, and a resolved scope that constrains any other
+column is refused). A scope shape it cannot check (an `or` over several columns, ranges, `like`, nested paths) is refused
+with its own "cannot be verified" message, never skipped. `ScopeFilters.UNRESTRICTED` bypasses the
+guard too - the deliberate hatch for system scope and admin roles; an unresolved scope refuses a
+create under `deny` and leaves an update to the scoped `where`. NOT covered: an update that does not
+name the scope column (already confined by the scoped `where`), raw drizzle statements, and
+per-row or polymorphic ownership below.
 
 **The mirror trap, on the side that IS scoped:** an administrative method that legitimately targets
 another principal's rows (`deleteAllForUser({ userId })`) silently narrows to the CALLER's rows,
-deletes nothing, and reports success. When adding `scopeFilter` to a model, audit every
+deletes nothing, and reports success. When adding `access` to a model, audit every
 `updateById`/`updateAll`/`deleteBy` taking another principal's id as an argument; the fix is a
 method on the repository passing `dangerouslySkipScopeFilter`, never a flag in the request context.
 
-**Declaring `scopeFilter` where it cannot take effect now REFUSES TO BOOT** -
+**Declaring `access` where it cannot take effect now REFUSES TO BOOT** -
 `assertScopeFilterSupported({ asyncContextEnabled })` in `src/common/scope-filter.ts`, called from
 core-server's `initialize()` after `postConfigure()` so component-contributed models are covered. It
 catches the two silent configurations, which fail in OPPOSITE directions: a search-backed model
@@ -437,40 +457,40 @@ why it is a trap. The redundancy adds no safety and HIDES divergence; a subclass
 but not the other drifts with no compile error. There is no honest "migrate one family while the
 guards stay" path.
 
-**`scopeFilter` narrows, a guard throws, and the profiles are OPPOSITE.** Injecting a `where` means a
+**`access` narrows, a guard throws, and the profiles are OPPOSITE.** Injecting a `where` means a
 handler that forgets is still scoped (the win) but a legitimate cross-principal write silently does
 nothing (the cost), and `create` is out of reach. A guard that loads the row and throws is the mirror:
 it covers `create` and cannot silently succeed, but it is a hole wherever somebody forgot to call it,
 and it costs a read per write. Neither dominates - pick per model, and keep guards on `create` either way.
-**Beyond that, `scopeFilter` covers an update or delete whose scope is expressible as a filter
+**Beyond that, `access` covers an update or delete whose scope is expressible as a filter
 clause - not per-row or polymorphic ownership.** A `where` comparing a column against values the resolver already knows
 (`merchantId`, `tenantId`) is exactly that shape. A row identified only by a `principalType` +
 `principalId` pair, where the owner lives in a different table chosen by `principalType` at runtime,
 is not: that check is per-row, asynchronous, and reads the payload, none of which `resolve(): TWhere`
 can express. An application with that shape still must run its own ownership check before the write -
-`scopeFilter` neither performs it nor detects that it is missing. This is a deliberate gap, tracked
+`access` neither performs it nor detects that it is missing. This is a deliberate gap, tracked
 the same way the search-repository gap below is: no hook exists for the per-row case yet, because its
 shape varies enough between applications that building one before seeing more of them would guess
 wrong.
 
 **Search repositories (`search/core`, `typesense`, `meilisearch`) do not read this setting at all.**
 They compile filters through a different pipeline - `SearchBaseRepository.buildQuery` and
-`compileEffectiveWhere`, string `filterBy` expressions - and `scopeFilter` was deliberately left
+`compileEffectiveWhere`, string `filterBy` expressions - and `access` was deliberately left
 uncovered there rather than half-implemented. A model mirrored from a scoped relational entity into
 a search index carries no row scope in its search queries; the application must add its own.
 
-**`include` reaches `scopeFilter` too, at every relation and every nesting depth.**
+**`include` reaches `access` too, at every relation and every nesting depth.**
 `FilterBuilder.toInclude` in `relational/core/repositories/dialect/filter.ts` resolves each relation's
-`scopeFilter` from that relation's OWN `@model` settings - not the parent's - the same
+`access` from that relation's OWN `@model` settings - not the parent's - the same
 `resolveModelEntry` lookup `resolveDefaultFilter`/`resolveHiddenProperties` already use, keyed by the
 relation's schema object first and its SQL table name second. A parent's scope never cascades to a child, and a child with no
-`scopeFilter` compiles to exactly the same query it always did. The same three-state order applies
+`access` compiles to exactly the same query it always did. The same three-state order applies
 per relation: an `UNRESTRICTED` parent never widens a still-scoped child, and a scoped parent never
 narrows an `UNRESTRICTED` child, because each relation's `applyRelationScopeFilter` reads only that
 relation's own `resolve()`. `toInclude` calls itself through
 `build()` for a relation's own `include`, so a relation of a relation is scoped by the same code path,
 not a special case. The relation-level `shouldSkipDefaultFilter` (on an `include` entry) still gates
-only that relation's `defaultFilter`; it is deliberately excluded from the wire filter schema (see
+only that relation's `query.filter`; it is deliberately excluded from the wire filter schema (see
 `packages/filter/src/schemas/builder.ts`) precisely so it cannot double as a scope bypass. The deny
 predicate (`{ id: { inq: [] } }`) is a static method on `ScopeFilterDenial` in
 `relational/core/repositories/common/scope-filter.ts`, shared by `applyScopeFilter` and `toInclude` so
@@ -522,10 +542,10 @@ the cache.
 
 ## Every published sub-path is probed, and eight rows are waived
 
-`scripts/purity/manifest.ts` derives its rows from this package's `exports` map, so all 14 sub-paths
+`scripts/checks/purity/manifest.ts` derives its rows from this package's `exports` map, so all 14 sub-paths
 are measured. It used to carry three hand-written rows - the root, `relational/core` and the PGlite
 driver - and reported `11/11` green while saying nothing about the other eleven. No ESLint rule
-guards this package either: `.configs/eslint.config.mjs` is `namingConventionConfigs` alone, unlike `core-worker`,
+guards this package either: `.configs/lints/eslint.config.mjs` is `namingConventionConfigs` alone, unlike `core-worker`,
 which adds a `no-restricted-globals` and `no-restricted-imports` layer.
 
 Seven rows cannot pass, so the claim names them in `impure` and `make purity-connectors` exits 0.

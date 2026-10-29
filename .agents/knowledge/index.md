@@ -21,9 +21,9 @@ Curated knowledge about the IGNIS framework, for agents and for humans. Start he
 re-deriving the project from the source each session.
 
 **The code is ground truth.** These concepts are curated prose over the code. When the two disagree,
-the code wins and the concept is a bug - fix it and note it in [log](/log.md).
+the code wins and the concept is a bug - fix it.
 
-Served over MCP by `ignis-atlas`, registered in `.mcp.json`; it runs VULCAN's atlas (`bun x --no-install
+Served over MCP by `atlas`, which `vulcan sync` registers in each machine's `.mcp.json`; it runs VULCAN's atlas (`bun x --no-install
 vulcan x atlas mcp`). `search` with `corpus: "knowledge"` finds a concept, `get` reads one by the id a
 search hit returned. Outside this repo the same server is `@venizia/vulcan-atlas`.
 
@@ -52,7 +52,7 @@ The framework ships nine packages, built in dependency order.
 | [filter](/packages/filter.md) | The query filter language and its schemas |
 | [inversion](/packages/inversion.md) | The standalone IoC container |
 | [helpers](/packages/helpers.md) | Production utility modules |
-| [dev-configs](/packages/dev-configs.md) | Shared oxlint, oxfmt, naming-convention ESLint, and TypeScript config |
+| [dev-configs](/packages/dev-configs.md) | Shared oxlint, naming-convention ESLint, and TypeScript config |
 
 ## Architecture
 
@@ -139,7 +139,7 @@ Generated from source - never hand-edited, run `make okf-gen`:
 
 ## Maintaining this bundle
 
-Change a fact in the code, update its concept in the same change, and append to [log](/log.md).
+Change a fact in the code and update its concept in the same change.
 A bundle that drifts is worse than none, because it is believed.
 
 `make okf-check-strict` validates it: frontmatter, links, docs style, one concept per package and example,

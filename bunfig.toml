@@ -1,0 +1,14 @@
+# `bun fmt` reads [fmt] from the folder it runs in or any parent, so this one table is the format of
+# every package, the wiki, the scripts and the examples. `flavor = "oxfmt"` keeps the output this
+# repository was formatted with once `oxfmt` is no longer installed.
+telemetry = false
+
+[fmt]
+printWidth = 100
+singleQuote = true
+arrowParens = "always"
+flavor = "oxfmt"
+
+# Keeps a bare `bun test scripts/...` out of the system temp: see scripts/test-setup/tmpdir.ts.
+[test]
+preload = ["./scripts/test-setup/tmpdir.ts"]

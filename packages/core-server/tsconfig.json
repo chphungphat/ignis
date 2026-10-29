@@ -3,23 +3,18 @@
   "extends": "@venizia/dev-configs/tsconfig.common.json",
   "compilerOptions": {
     "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx",
-    "outDir": "dist",
+    "outDir": "dist/esm",
     "rootDir": "src",
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/*": ["./src/*"]
     },
-    "useDefineForClassFields": false
+    "useDefineForClassFields": false,
+    "module": "ESNext",
+    "moduleResolution": "bundler"
   },
-  "include": [
-    "src"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "app_data"
-  ]
+  "include": ["src"],
+  "exclude": ["node_modules", "dist", "app_data"]
 }

@@ -13,12 +13,12 @@ import {
 } from '@/modules/socket/socket-io';
 import { afterEach, describe, expect, mock, test } from 'bun:test';
 import { EventEmitter } from 'node:events';
-import { createServer, type Server as HTTPServer } from 'node:http';
+import { createServer } from 'node:http';
 import { Server as IOServer, type Socket as IOSocket } from 'socket.io';
 import { io as connectClient } from 'socket.io-client';
 
-const wait = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
-const flush = () => new Promise<void>(resolve => setImmediate(resolve));
+const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+const flush = () => new Promise<void>((resolve) => setImmediate(resolve));
 
 class MockRedisClient extends EventEmitter {
   status = 'ready';
@@ -132,8 +132,8 @@ const createHelper = (opts?: Partial<TSocketIOServerOptions>) => {
 
   const helper = new SocketIOServerHelper({
     identifier: 'test-io-server',
-    runtime: RuntimeModules.NODE,
-    server: {} as AnyType as HTTPServer,
+    runtime: RuntimeModules.BUN,
+    engine: {},
     serverOptions: {},
     redisConnection,
     authenticateFn: () => true,
@@ -161,10 +161,8 @@ afterEach(async () => {
 });
 
 describe('SocketIOServerHelper | constructor', () => {
-  test('rejects a NODE runtime without an HTTP server', () => {
-    expect(() =>
-      createHelper({ runtime: RuntimeModules.NODE, server: undefined as AnyType as HTTPServer }),
-    ).toThrow(/Invalid HTTP server/);
+  test('rejects the Node runtime: IGNIS runs on Bun only', () => {
+    expect(() => createHelper({ runtime: 'node' } as AnyType)).toThrow(/Unsupported runtime/);
   });
 
   test('rejects a BUN runtime without an engine', () => {
@@ -211,9 +209,11 @@ describe('SocketIOServerHelper | constructor', () => {
     expect(helper['defaultRooms']).toEqual(['room-a']);
   });
 
-  test('getEngine() is only valid for the BUN runtime', () => {
-    const { helper } = createHelper();
-    expect(() => helper.getEngine()).toThrow(/only available for Bun runtime/);
+  test('getEngine() returns the @socket.io/bun-engine instance it was given', () => {
+    const engine = {};
+    const { helper } = createHelper({ runtime: RuntimeModules.BUN, engine });
+
+    expect(helper.getEngine()).toBe(engine);
   });
 });
 
@@ -332,7 +332,7 @@ describe('SocketIOServerHelper | authentication', () => {
     const client = helper.getClients({ id: 'client-a' }) as ISocketIOClient;
     expect(client.state).toBe(SocketIOClientStates.AUTHENTICATED);
     expect(socket.join).toHaveBeenCalledTimes(2);
-    expect(sent.map(entry => entry.topic)).toContain(SocketIOConstants.EVENT_AUTHENTICATED);
+    expect(sent.map((entry) => entry.topic)).toContain(SocketIOConstants.EVENT_AUTHENTICATED);
   });
 
   test('passes the handshake to authenticateFn', async () => {
@@ -369,17 +369,17 @@ describe('SocketIOServerHelper | authentication', () => {
     await authenticate({ socket });
     await wait(50);
 
-    const pings = socket.emitted.filter(entry => entry.topic === SocketIOConstants.EVENT_PING);
+    const pings = socket.emitted.filter((entry) => entry.topic === SocketIOConstants.EVENT_PING);
     expect(pings.length).toBeGreaterThanOrEqual(2);
 
     helper.disconnect({ socket });
     const pingsAfterDisconnect = socket.emitted.filter(
-      entry => entry.topic === SocketIOConstants.EVENT_PING,
+      (entry) => entry.topic === SocketIOConstants.EVENT_PING,
     ).length;
 
     await wait(50);
     expect(
-      socket.emitted.filter(entry => entry.topic === SocketIOConstants.EVENT_PING).length,
+      socket.emitted.filter((entry) => entry.topic === SocketIOConstants.EVENT_PING).length,
     ).toBe(pingsAfterDisconnect);
   });
 
@@ -391,7 +391,7 @@ describe('SocketIOServerHelper | authentication', () => {
     await authenticate({ socket });
     await flush();
 
-    expect(socket.emitted.map(entry => entry.topic)).toContain(
+    expect(socket.emitted.map((entry) => entry.topic)).toContain(
       SocketIOConstants.EVENT_UNAUTHENTICATE,
     );
     expect(socket.disconnect).toHaveBeenCalledTimes(1);
@@ -408,7 +408,7 @@ describe('SocketIOServerHelper | authentication', () => {
     await authenticate({ socket });
     await flush();
 
-    expect(socket.emitted.map(entry => entry.topic)).toContain(
+    expect(socket.emitted.map((entry) => entry.topic)).toContain(
       SocketIOConstants.EVENT_UNAUTHENTICATE,
     );
     expect(socket.disconnect).toHaveBeenCalledTimes(1);
@@ -428,7 +428,7 @@ describe('SocketIOServerHelper | authentication', () => {
 
     await flush();
     await flush();
-    expect(socket.emitted.map(entry => entry.topic)).toContain(
+    expect(socket.emitted.map((entry) => entry.topic)).toContain(
       SocketIOConstants.EVENT_UNAUTHENTICATE,
     );
     expect(helper.getClients({ id: 'client-a' })).toBeUndefined();
@@ -472,8 +472,8 @@ describe('SocketIOServerHelper | authentication', () => {
     const client = helper.getClients({ id: 'client-a' }) as ISocketIOClient;
     expect(client?.state).toBe(SocketIOClientStates.AUTHENTICATED);
     expect(socket.disconnect).not.toHaveBeenCalled();
-    expect(sent.map(entry => entry.topic)).not.toContain(SocketIOConstants.EVENT_UNAUTHENTICATE);
-    expect(socket.emitted.map(entry => entry.topic)).not.toContain(
+    expect(sent.map((entry) => entry.topic)).not.toContain(SocketIOConstants.EVENT_UNAUTHENTICATE);
+    expect(socket.emitted.map((entry) => entry.topic)).not.toContain(
       SocketIOConstants.EVENT_UNAUTHENTICATE,
     );
   });
@@ -500,7 +500,7 @@ const REDIS_ROUND_TRIP_MS = 5;
 
 const startHttpServer = async () => {
   const httpServer = createServer();
-  await new Promise<void>(resolve => {
+  await new Promise<void>((resolve) => {
     httpServer.listen(0, '127.0.0.1', () => {
       resolve();
     });
@@ -521,7 +521,7 @@ describe('SocketIOServerHelper | rejection over a real transport', () => {
     const ioServer = new IOServer(httpServer);
 
     helper['io'] = ioServer;
-    relays.push(entry => {
+    relays.push((entry) => {
       setTimeout(() => {
         if (entry.destination) {
           ioServer.to(entry.destination).emit(entry.topic, entry.data);
@@ -545,7 +545,7 @@ describe('SocketIOServerHelper | rejection over a real transport', () => {
       events.push(SocketIOConstants.EVENT_UNAUTHENTICATE);
     });
 
-    const reason = await new Promise<string>(resolve => {
+    const reason = await new Promise<string>((resolve) => {
       client.on(SocketIOConstants.EVENT_DISCONNECT, (disconnectReason: string) => {
         events.push(SocketIOConstants.EVENT_DISCONNECT);
         resolve(disconnectReason);

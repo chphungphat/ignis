@@ -67,9 +67,9 @@ IGNIS is infrastructure other products stand on. A shortcut here ships to every 
 
 | ID | Rule |
 |---|---|
-| **P-01** | **Extends V-P-01.** Start at [`knowledge/index.md`](knowledge/index.md), open the concepts your task touches, then act. Query it with the `ignis-atlas` MCP server (`search` with `corpus: "knowledge"`, `get`). The code is ground truth: a concept that disagrees with the code is a bug, fix it. |
+| **P-01** | **Extends V-P-01.** Start at [`knowledge/index.md`](knowledge/index.md), open the concepts your task touches, then act. Query it with the `atlas` MCP server (`search` with `corpus: "knowledge"`, `get`). The code is ground truth: a concept that disagrees with the code is a bug, fix it. |
 | **P-02** | **Extends V-P-02.** For IGNIS the surface is decorators, signatures, types and options. IGNIS is LoopBack 4's architecture on Hono's speed: reason from how LoopBack 4, NestJS and Spring Boot solved the same problem, then pick what fits. Always weigh transaction support, type safety, DI integration and testability. |
-| **P-03** | **Extends V-P-04.** Append a line to `knowledge/log.md` in the same change. Generated content is never hand-edited: `reference/{source-map,components,helpers,binding-keys,makefile-targets}.md` and `<!-- okf:generated:... -->` regions come from `make okf-gen`; `public-surface.md` from `make surface-gen`. Atlas computes releases from the git tags and reads symbols from the built `.d.ts`, so neither is committed. The rest of `reference/` (glossary, key source files, external links) is curated. `make okf-check-strict` validates (CI runs it); it is not a commit gate. |
+| **P-03** | **Extends V-P-04.** Generated content is never hand-edited: `reference/{source-map,components,helpers,binding-keys,makefile-targets}.md` and `<!-- okf:generated:... -->` regions come from `make okf-gen`; `public-surface.md` from `make surface-gen`. Atlas computes releases from the git tags and reads symbols from the built `.d.ts`, so neither is committed. The rest of `reference/` (glossary, key source files, external links) is curated. `make okf-check-strict` validates (CI runs it); it is not a commit gate. |
 | **P-04** | **Done climbs a fixed ladder, in order:** tests written and green -> build green and lint at zero -> BANA usage crosschecked -> `docs/wiki` updated -> knowledge bundle updated. Lay the ladder out as the step list at the start of every framework change (P-09). A rung skipped is reported as skipped, never as done. |
 | **P-05** | **Crosscheck BANA before calling a framework change finished.** Every changed public symbol is grepped in the BANA repository for the symbol and for the call shape (read-only, W-06). Usage hot paths: `inject` ~700 sites, `getError` ~444, `repository` ~204, `model` ~185 - a change to one of these breaks BANA repo-wide. |
 | **P-06** | **Public exports have consumers you cannot see.** "No usage in IGNIS or BANA" never justifies deleting or reshaping an exported symbol on its own - park it, or ask. Whether a change is breaking is decided by the tagged release, not by the working tree: `git merge-base --is-ancestor <sha> <pkg>-v<version>`. |
@@ -86,25 +86,28 @@ IGNIS is infrastructure other products stand on. A shortcut here ships to every 
 ### The minimap (P-09)
 
 <!-- minimap-shape:start -->
-One shape, so every session draws the same map. Column headers follow the chat language.
+One shape, so every session draws the same map. The labels are not fixed words: the human reader's
+owner profile supplies them (column headers, status marks, the blocker label, the language). For
+another agent, use the plain format that agent asked for. Placeholders below stand for those labels.
 
 ```
-| # | Bước | Trạng thái |
+| # | <step column> | <status column> |
 |---|---|---|
-| 1 | <an outcome, with a way to verify it> | ✅ |
-| 2 | <an outcome> | ◀ ĐANG Ở ĐÂY |
-| 3 | <an outcome> | ⬜ |
+| 1 | <an outcome, with a way to verify it> | <done mark> |
+| 2 | <an outcome> | <current mark> |
+| 3 | <an outcome> | <pending mark> |
 
-Chặn: <what blocks, or "không có">
+<blocked label>: <what blocks, or the profile's "none" word>
 ```
 
 - The first message of a task posts the map **before** any work starts. Executing before the map
-  exists is how work drifts out of the human's sight.
+  exists is how work drifts out of the reader's sight.
 - A step is an outcome with a verification, never an activity: "kernel suite green after the
   change", not "run tests".
-- Exactly one row carries `◀ ĐANG Ở ĐÂY`. A step is ✅ only after its verification ran (B-03).
+- Exactly one row carries the `<current mark>`. A step takes the `<done mark>` only after its
+  verification ran (B-03).
 - When the plan changes, the map changes and the message says why. A blocker is named on the
-  `Chặn` line, never buried in prose.
+  `<blocked label>` line, never buried in prose.
 - For a framework change the rows are at least the ladder of P-04.
 <!-- minimap-shape:end -->
 
@@ -112,14 +115,14 @@ Chặn: <what blocks, or "không có">
 
 | ID | Rule |
 |---|---|
-| **B-01** | **Bun only, and the repo's own scripts.** Never npm, yarn or pnpm. TypeScript compiles with `tsc` directly - never `npx`, `bunx` or `bun x` for compilation. Build with `make build` inside the package or `make <pkg>` from the root; lint with `make lint-<pkg>` or `make lint-all`, and the examples with `bun scripts/examples.ts check`. |
+| **B-01** | **Bun only, and the repo's own scripts.** Never npm, yarn or pnpm. TypeScript compiles with `tsc` directly - never `npx`, `bunx` or `bun x` for compilation. Build with `make build` inside the package or `make <pkg>` from the root; lint with `make lint-<pkg>` or `make lint-all`, and an example with `bun run lint` in its own folder. |
 | **B-02** | **Extends V-B-02.** The build is green too, after every change, not only before "done". Non-negotiable; nothing is complete until it passes. |
 | **B-03** | **Extends V-B-03.** A step that failed or was skipped is reported as such, never folded into a pass. |
 | **B-04** | **Know the two build traps.** A stale `.tsbuildinfo` makes `tsc` believe it is up to date and emit nothing - a build that prints `DONE` over an empty `dist/`; `make clean` (part of `make rebuild`) removes the ones under `.configs/` too. `tsc-alias` must read the package's root `tsconfig.json`: pointed at a `.configs/` file it resolves `paths` there and leaves every `@/` import unrewritten. Build through `make` (`make/project.mk` type-checks every emitted program before `clean`, and calls each tool by absolute path), and confirm the `DONE` line. |
 | **B-05** | **A downstream suite tests `dist`, not `src`.** `bun test` resolves `@venizia/ignis-kernel` and `@venizia/ignis-inversion` through the `import` export condition to `dist/esm/index.js`. A source change in one package is invisible to another package's tests until the changed package is rebuilt. Before trusting "I changed X and Y's suite is still green", rebuild X and prove what Y loads - `import.meta.resolve` from Y's directory, or a grep on `dist/esm`. |
 | **B-06** | **Do not trust an exit code or a green summary alone.** Read the output for `error TS`, for the test counts, and for what actually ran. A stale `tsbuildinfo` replays ghost diagnostics after an exports change - purge it before trusting `tsc`. A build that emits `__tests__` into `dist` makes `bun test` run every test once per copy - a count that is a clean multiple of the file count is that, not coverage (inversion reported 111 for 37 tests until its build excluded them). |
 | **B-07** | **Agent scripting uses `bun`** (`bun -e '…'`, `bun file.ts`, `Bun.file()`), never Python. |
-| **B-08** | **Test-only concerns go through the committed `.env.test`,** never through a framework default or a source change made for a test's convenience. Tests run on the Bun test runner only - never Jest, Vitest or Mocha. |
+| **B-08** | **Test-only settings live in `TEST_ENV` in `make/test.mk`,** never in a committed `.env` file (only `.env.example` is tracked), a framework default or a source change made for a test's convenience. Tests run on the Bun test runner only - never Jest, Vitest or Mocha. |
 
 ## D - Docs
 
@@ -130,7 +133,7 @@ reads its paths from the manifest and applies these rules.
 |---|---|
 | **D-01** | **One page per topic, in its section.** Under `docs/wiki/content/`: a release-worthy change is a `changelogs/YYYY-MM-DD-slug.md` from `changelogs/template.md`; a changed API surface updates `references/<area>/`; a component or helper updates `extensions/components/<name>/` or `extensions/helpers/<name>/`; a how-to or concept is a `guides/<area>/` page; a rule people should follow is a `best-practices/` page. Edit the page that owns the topic before creating one. |
 | **D-02** | **House style, checked page by page.** The brand is **IGNIS**; a hyphen, never an em-dash; no abbreviated identifiers (`Repository`, not `Repo`); every code sample compiles against the real source, names and signatures verified in `packages/`; native VitePress only, no custom components or CSS; `**Files:**` links are GitHub file-level URLs with no line anchors; the first screen says what the page is and shows the first example. The full style is [docs writing style](knowledge/conventions/docs-writing-style.md). `make okf-check-strict` checks only the brand and the dash. |
-| **D-03** | **A new page is wired in twice:** the sidebar in `docs/wiki/site/.vitepress/config.mts`, and the `index.md` of its section when it has one. A changelog also gets a row at the top of `changelogs/index.md`. |
+| **D-03** | **A new page is wired in twice:** the sidebar in `docs/wiki/site/.vitepress/config.mts`, and the `index.md` of its section when it has one. A changelog needs neither: it is a dated file under `changelogs/` and the index component lists it from the file itself (title, `packages:`, the badge line). |
 | **D-04** | **Four docs gates, all green:** `make docs` (an orphan page or a dead sidebar link via `check-sidebar.mts`, then a dead link in the build), `make wiki-links-check` (a named source path that does not exist), `make wiki-anchors-check` (a `#fragment` that resolves nowhere; it reads the build), `make lint-wiki` (the wiki's own scripts). A red gate sends you back to the step that caused it; then re-run all four. |
 
 ## C - Code and writing
@@ -148,7 +151,7 @@ means the same rule.
 |---|---|
 | **C-03** | **Every constructor parameter of a container-instantiated class carries `@inject`.** Mixing decorated and undecorated parameters is refused at boot - the container has no channel to supply an undecorated one. Options a controller needs go in `super({ scope: X.name })`, never as an undecorated parameter. |
 | **C-04** | **Extends V-C-04 with one exception, set by the PO: `tz` for a time zone** - `TemporalHelper`'s option and its derivatives `getTz`, `sourceTz`, `targetTz`. |
-| **C-05** | **Errors are `getError` / `ApplicationError`. Never `new Error`.** Never `instanceof ApplicationError` across a package boundary - the dual CJS+ESM build gives the class several identities; use `isApplicationError()`. Enforced by `venizia/no-new-error` in `houseConfigs` (`@venizia/dev-configs/linters`); a justified exception carries an `eslint-disable-next-line` with its reason. |
+| **C-05** | **Errors are `getError` / `ApplicationError`. Never `new Error`.** Never `instanceof ApplicationError` across a package boundary - two installed copies of a package give the class several identities; use `isApplicationError()`. Enforced by `venizia/no-new-error` in `houseConfigs` (`@venizia/dev-configs/linters`); a justified exception carries an `eslint-disable-next-line` with its reason. |
 | **C-18** | **The hard stack.** Drizzle only (never TypeORM, Prisma, Sequelize); Hono only (never Express, Fastify, Koa); Zod only (never Joi, Yup, class-validator); PostgreSQL primary with SQLite alongside, the repository tier engine-neutral (`pgTable` and `sqliteTable` both). REST is default framework behavior, not a component. |
 
 ---
@@ -159,7 +162,7 @@ Most of these rules hold because agents read this file. Only these have tooling 
 
 | Rule | Enforced by | Actually blocks? |
 |---|---|---|
-| B-02 | `.githooks/pre-commit` runs `make lint-all` and `bun scripts/examples.ts check` (after `make setup-hooks`); `make build` and the tests run by hand | Lint blocks a commit; build and tests are not gated |
+| B-02 | `.githooks/pre-commit` runs `make lint-all` (after `make setup-hooks`); `make build` and the tests run by hand | Lint blocks a commit; build and tests are not gated |
 | C-05, V-C-02, V-C-06, V-C-14 | ESLint `houseConfigs` (`venizia/no-new-error`, `venizia/max-params-own`, the naming convention) through `make lint-all` | Yes, at pre-commit |
 | P-03 | `make okf-check-strict` in CI; the `knowledge-sync` skill periodically | Blocks a pull request, not a commit - a per-commit check cannot tell whether prose is still true |
 | Agent setup | `make vulcan-doctor` in CI (after `make vulcan-sync`); locally by hand | Blocks a pull request; not run at pre-commit |
