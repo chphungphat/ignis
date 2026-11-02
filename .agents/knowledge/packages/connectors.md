@@ -171,7 +171,7 @@ Every peer is optional in `peerDependenciesMeta`; a sub-path needs what it impor
 `@hono/zod-openapi`; the relational sub-paths `drizzle-orm` (plus `drizzle-zod` at `/relational`,
 `/postgres`, `/sqlite`). `./search`, `./typesense` and `./meilisearch` import neither `hono` nor
 `drizzle-orm` - they reach only `kernel/metadata` and `kernel/repository` - so the search
-controllers (`AbstractSearchController`, `SearchControllerFactory`, `defineSearchRouteConfigs`,
+controllers (`AbstractSearchController`, `SearchControllerFactory` with `defineRouteConfigs`,
 `ISearchControllerOptions`, `ISearchCustomizableRoutes`) are NOT exported from them any more, nor
 from the package root: only `./search/controllers` and `./typesense/controllers` carry them, and only
 those two import `@hono/zod-openapi`. `./http` loads with no hono and no `@hono/zod-openapi` either.
@@ -225,9 +225,10 @@ on the shared type names - `TTableObject`, `TRelationConfig` and friends - which
 redeclares rather than re-exports.
 
 So the two package roots deliberately differ. Measured against `dist/`: the connectors root exports
-43 runtime symbols, the Postgres sub-path exports 32, and they share 4 -
-`BaseRelationalEntity`, `getIdType`, `getCachedColumns`, `createRelations`. `@venizia/ignis` gets the
-Postgres 32 at its root; `@venizia/ignis-connectors` gets the neutral 43.
+48 runtime symbols, the Postgres sub-path exports 34, and they share 10 -
+`BaseRelationalEntity`, `ModelFactory`, `many`, `one`, `RelationDeclarations`, `RecursiveTreeSql`,
+`RecursiveTreeDirections`, `RelationalEntityUtility`, `TableColumnCache` and `RelationsFactory`.
+`@venizia/ignis` gets the Postgres 34 at its root; `@venizia/ignis-connectors` gets the neutral 48.
 
 ## Two ways to declare a model, both supported
 
@@ -236,20 +237,20 @@ models use it - it is not going anywhere. `ModelFactory.defineEntity({ table, re
 (`relational/core/models/factory.ts`, exported by `./relational`, `./postgres`, `./sqlite` and
 `@venizia/ignis/postgres`) is the second, TABLE FIRST: the table is a plain drizzle table
 (`pgTable`, `pgSchema(...).table`, `sqliteTable`), usually with
-`...generateIdColumnDefs({ id: { dataType: 'string' } })` for a UUID v7 id, exported so drizzle-kit
+`...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } })` for a UUID v7 id, exported so drizzle-kit
 sees it (measured: "No schema changes" on `examples/pglite-quickstart`). `TABLE_NAME` is
 `getTableName(table)`. The returned class type is `TDefinedEntityClass<Schema, Relations>` =
 `typeof BaseRelationalEntity<Schema>` plus the precise `schema`, `relationDefinitions` (`undefined`
 when none) and `relations` - so the instance is typed and `AUTHORIZATION_SUBJECT` is there.
 
-Relations come keyed by name - `many(table)` / `one(table)` - and `toRelationConfigs` flattens them
+Relations come keyed by name - `many(table)` / `one(table)` - and `RelationDeclarations.toRelationConfigs` flattens them
 into the array the query dialect already reads, taking each name from its key. The thunk runs lazily
 on first read, once (a thunk run at definition throws for a table declared later in the file).
 `TEntityObject<typeof Entity>` is the row - read off the INSTANCE's `$inferData`, because the static
 `schema` is widened to `Table` on the base and a row read through it would take `Table`'s index
 signature - plus the relation rows; a model without relations gets a plain row.
 
-`one` resolves its columns in `createRelations` (`repositories/dialect/relations/`: `one.ts` resolves a `one`, `many.ts` configures a `many`, `create.ts` builds both), for the keyed form
+`one` resolves its columns in `RelationsFactory.create` (`repositories/dialect/relations/`: `one.ts` resolves a `one`, `many.ts` configures a `many`, `create.ts` builds both), for the keyed form
 and hand-written arrays alike:
 
 - Written `fields` + `references` are used as written. Only one of them throws.
@@ -268,7 +269,7 @@ and hand-written arrays alike:
   and `next` would silently return the wrong row.
 - No key either way throws.
 
-Each resolution is memoized per `createRelations` call: drizzle re-runs the relations callback on
+Each resolution is memoized per `RelationsFactory.create` call: drizzle re-runs the relations callback on
 every `drizzle({ schema })`, and the drivers make one per `beginTransaction`.
 
 `BaseRelationalDataSource.discoverSchema()` then asks `RelationPairing` (`core/datasources/relation-pairing.ts`,
@@ -311,12 +312,12 @@ shipped, so nothing migrates from it.
 
 | Tier | What lives there |
 |---|---|
-| `relational/core` | `AbstractRelationalDataSource`, `BaseRelationalDataSource`, the `IRelationalDriver` contract, `BaseRelationalEntity`, `ModelFactory` with `one`/`many`/`TEntityObject`, `RecursiveTreeSql`, the five-class repository chain, `FilterBuilder`, `RelationalUpdateBuilder`, `RelationalMigrationRunner`, `resolveAuditUserId` |
-| `relational/postgres` | `BasePostgresDataSource`, three drivers, the column enrichers, `DefaultCRUDRepository` and its chain, `PostgresQueryDialect`, `IsolationLevels` |
-| `relational/postgres/supabase` | `PoolerModes` and the RLS statement helpers |
+| `relational/core` | `AbstractRelationalDataSource`, `BaseRelationalDataSource`, the `IRelationalDriver` contract, `BaseRelationalEntity`, `ModelFactory` with `one`/`many`/`TEntityObject`, `RecursiveTreeSql`, the five-class repository chain, `FilterBuilder`, `RelationalUpdateBuilder`, `RelationalMigrationRunner`, `AuditUserResolver` |
+| `relational/postgres` | `BasePostgresDataSource`, three drivers, the column enrichers (`Postgres*Enricher` classes with `generateColumnDefs` and `enrich`; `Sqlite*Enricher` is the SQLite twin), `DefaultCRUDRepository` and its chain, `PostgresQueryDialect`, `IsolationLevels` |
+| `relational/postgres/supabase` | `PoolerModes`, `SupabasePooler` and `SupabaseRls` |
 | `relational/sqlite` | `BaseSqliteDataSource`, `LibSqlDriver`, `DefaultSqliteRepository` and its chain, `SqliteQueryDialect`, `SqliteBeginModes` |
-| `search/core` | `ISearchConnector` and `BaseSearchConnector`, `BaseSearchDataSource`, `defineSearchCollection`, the search repository chain |
-| `search/core/controllers` | `AbstractSearchController`, `SearchControllerFactory`, `defineSearchRouteConfigs` - published only as `./search/controllers` and `./typesense/controllers` |
+| `search/core` | `ISearchConnector` and `BaseSearchConnector`, `BaseSearchDataSource`, `SearchCollectionFactory`, the search repository chain |
+| `search/core/controllers` | `AbstractSearchController`, `SearchControllerFactory` (with `defineRouteConfigs`) - published only as `./search/controllers` and `./typesense/controllers` |
 | `search/typesense` | `TypesenseConnector`, `TypesenseDataSource`, `TypesenseQueryDialect`, the collection compiler |
 | `search/meilisearch` | `MeilisearchConnector`, `MeilisearchDataSource`, `MeilisearchQueryDialect`, the collection compiler |
 
@@ -328,7 +329,7 @@ the dialect off the table it is handed. For the depth, read
 [SQLite connector](/architecture/sqlite-connector.md), and
 [Typesense search connector](/architecture/search-typesense.md).
 
-`generatePrincipalColumnDefs` and `enrichPrincipal` (Postgres and SQLite) add a `{discriminator}Id` and a
+`PostgresPrincipalEnricher` and `SqlitePrincipalEnricher` (`generateColumnDefs` and `enrich`) add a `{discriminator}Id` and a
 `{discriminator}Type` column. `isNullableId` (default `false`) controls the id column only.
 `isNullableDiscriminator` (default `true`) leaves the type column nullable with a `''` default; `false`
 makes it `NOT NULL` with no default, so an insert without the type is rejected and `$inferInsert`
@@ -340,7 +341,7 @@ caller means nullable. A widened `boolean` flag takes the `NOT NULL` type branch
 
 `relational/core/repositories/sqls/recursive-tree.ts` exports `RecursiveTreeSql.walk(opts)`, which
 builds a `WITH RECURSIVE` fragment (a Drizzle `SQL` value) walking an adjacency-list table up
-(ancestors) or down (descendants) from `rootId`, for Postgres or SQLite. It value-imports
+(ancestors) or down (descendants) from `rootId` (one id, a list of ids, or none: a DOWN walk then starts from every row without a parent; an UP walk needs a root, and an empty list is refused; `start: 'all'` instead makes every row a root, it cannot be combined with `rootId`, and a row then shows up once per root that reaches it), for Postgres or SQLite. The CTE named by `name` is the fragment's only output: the caller writes the `SELECT` around it and can join `name` to other tables. `anchorFilter` and `recursiveFilter` add a condition to one term each, and `filter` to both at once (the anchor then names the table by the alias `t`, as the recursive term always does, so `t.deleted_at IS NULL` is valid in both). It value-imports
 `drizzle-orm` (`is`, `sql`, `Table`, `PgTable`, `SQLiteTable`), so it lives here - not in `kernel`,
 which reaches `drizzle-orm` through `import type` only, and not in `helpers`, which carries no
 `drizzle-orm` at all. It is the one place in the relational tier that imports `drizzle-orm/pg-core`
@@ -443,7 +444,7 @@ deletes nothing, and reports success. When adding `access` to a model, audit eve
 method on the repository passing `dangerouslySkipScopeFilter`, never a flag in the request context.
 
 **Declaring `access` where it cannot take effect now REFUSES TO BOOT** -
-`assertScopeFilterSupported({ asyncContextEnabled })` in `src/common/scope-filter.ts`, called from
+`ScopeFilterUtility.assertScopeFilterSupported({ asyncContextEnabled })` in `src/common/scope-filter.ts`, called from
 core-server's `initialize()` after `postConfigure()` so component-contributed models are covered. It
 catches the two silent configurations, which fail in OPPOSITE directions: a search-backed model
 (`BaseSearchEntity` in the prototype chain) never reads the setting and returns MORE rows, while
@@ -506,7 +507,7 @@ expression's `asc`/`desc` SQL node is built once and reused in a `WeakMap` keyed
 object (`_orderNodeCache`) - drizzle 0.45 wraps order nodes, never mutates them - which took `build()`
 with one include from 870 to 446 ns.
 
-**Each entry is read through `parseOrderEntry` (`@venizia/ignis-filter`), not a private parser.**
+**Each entry is read through `Sorts.parseEntry` (`@venizia/ignis-filter`), not a private parser.**
 `FilterBuilder`, `TypesenseQueryDialect` and `MeilisearchQueryDialect` used to each carry their own
 copy of the same `entry.trim().split(/\s+/)` logic; all three now call the one shared function (V-C-16,
 in the VULCAN base rules). It throws a `400` naming the whole entry for an empty field, an invalid
@@ -535,7 +536,7 @@ alone. The map is cleared (not LRU-evicted) once it reaches the cap: deleting fr
 JSC `Map` measured slower than accepting one extra parse on the next miss. An entry is cached as soon
 as it parses and fits the length bound - before the column or expression it names is looked up - so
 an entry naming an unknown column is cached too, as long as it is 256 characters or fewer. Only a
-value `parseOrderEntry` itself rejects (empty field, invalid direction, more than two tokens) is
+value `Sorts.parseEntry` itself rejects (empty field, invalid direction, more than two tokens) is
 never cached. Measured on the built dist (`score DESC`, request-shaped): about 53 ns/call before
 this change, about 250 ns/call for the parser running uncached on every call, about 37 ns/call with
 the cache.
@@ -611,17 +612,16 @@ peer the sub-path imports and stays in the graph - measured, the entry is pure w
 
 Every driver reaches its logger through `BaseHelper` from `@venizia/ignis-helpers/core`, which is what
 makes them browser-pure - and which means an import graph containing connectors but not
-`@venizia/ignis` never loads the real provider. `BaseHelper.logger` then writes to the console and
-prints one `[BaseHelper] Logging to the console - no logger provider is installed...` warning per
-process. It upgrades itself on its next call once something imports `LoggerFactory` as a value,
-which only the `@venizia/ignis-helpers` ROOT barrel exports - see [helpers](/packages/helpers.md).
+`@venizia/ignis` never selects Winston. `BaseHelper.logger` then writes to the console, the default
+provider, with no warning. The script chooses another with `LoggerFactory.use({ provider })`
+(`LoggerFactory` is exported from `/core`) - see [helpers](/packages/helpers.md).
 
 Measured: a script importing `@venizia/ignis-connectors/postgres` plus a driver logs
 `[SeamProbe] hello` to stdout and writes **zero** files, with `APP_ENV_LOGGER_FOLDER_PATH` set. The
 same script importing `@venizia/ignis` writes two. A migration or seed script that never constructs
 an application is the case this hits.
 
-`assertNoWorkspaceExternal` runs at manifest module-evaluation time and refuses any `external` under
+`PurityManifest.assertNoWorkspaceExternal` runs at manifest module-evaluation time and refuses any `external` under
 the `@venizia/` scope. An `external` on our own source would hide the exact leak the gate exists to
 catch rather than prove it absent.
 

@@ -10,11 +10,10 @@ generated:
 
 > Generated from source - do not edit; run `make okf-gen`. Playbook: [build system](/process/build-system.md).
 
-**121 targets.**
+**120 targets.**
 
 | Target | Depends on | Description |
 |---|---|---|
-| `make agent-setup` | `vulcan-sync` | Write the gitignored agent adapters (CLAUDE.md, .claude/) with VULCAN. |
 | `make all` | `build` | Rebuilds all packages (alias for 'build-all'). |
 | `make atlas-releases` | - | Print the releases atlas computes from the git tags. |
 | `make atlas-symbols` | - | Print the symbols atlas reads from the built .d.ts. |
@@ -42,7 +41,7 @@ generated:
 | `make core-server` | `connectors boot` | Rebuild one package, after its dependencies. |
 | `make core-worker` | `kernel` | Rebuild one package, after its dependencies. |
 | `make dev-configs` | - | Rebuild one package, after its dependencies. |
-| `make docs` | - | Rebuilds wiki (VitePress) for GitHub Pages. |
+| `make docs` | - | Rebuilds wiki (VitePress) for GitHub Pages; fails on a server render error or a home page without footer and canvases. |
 | `make examples-check` | - | Gate: every example type-checks against the built packages. Needs a build. |
 | `make filter` | `inversion` | Rebuild one package, after its dependencies. |
 | `make fmt-files` | - | Format check / write of package.json, .github, .agents, .configs, presets and examples. |
@@ -101,7 +100,7 @@ generated:
 | `make purity-inversion` | - | Gate: one package's browser-pure entries. Needs a build. |
 | `make purity-kernel` | - | Gate: one package's browser-pure entries. Needs a build. |
 | `make purity-test` | - | Run the purity probe's own regression tests. |
-| `make release` | - | Dispatch the release workflow per package, e.g. ARGS="kernel --mode patch". |
+| `make release` | - | Dispatch the release workflow once for the whole plan, e.g. ARGS="kernel --mode prerelease --yes"; a stable (patch, minor, major) releases from main with its own scope: ARGS="--mode patch --dry-run"; ARGS="--plan <printed plan> --yes" continues a run that stopped. |
 | `make release-plan` | - | Print the release plan (dependency order), dispatch nothing. |
 | `make setup-hooks` | - | Configure git to use .githooks directory. |
 | `make split-report` | - | Report hub files, stray types, missing barrels, long files, cycles (informational). |
@@ -120,7 +119,7 @@ generated:
 | `make test-kernel` | - | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |
 | `make test-scripts` | - | Run the repository gate scripts' own regression tests. |
 | `make tmp-leak-check` | - | test-all and test-scripts, then fail if the run left anything in the system temp or in .agents/local/tmp. |
-| `make update` | `install` | Force update all packages from NPM registry. |
+| `make update` | `install` | Alias of 'install'; to raise one package's deps use 'update-<pkg>'. |
 | `make update-boot` | - | Force update one package's dependencies from NPM. |
 | `make update-connectors` | - | Force update one package's dependencies from NPM. |
 | `make update-core` | `update-core-server` | Force update one package's dependencies from NPM. |

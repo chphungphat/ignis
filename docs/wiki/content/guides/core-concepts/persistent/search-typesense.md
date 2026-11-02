@@ -9,7 +9,7 @@ IGNIS ships a **typesense connector** under `@venizia/ignis/typesense` for full-
 > import {
 >   TypesenseDataSource,
 >   BaseSearchEntity,
->   defineSearchCollection,
+>   SearchCollectionFactory,
 >   field,
 > } from '@venizia/ignis/typesense';
 > ```
@@ -18,14 +18,14 @@ IGNIS ships a **typesense connector** under `@venizia/ignis/typesense` for full-
 
 ## Defining a Search Collection
 
-Instead of a Drizzle `pgTable`, define a collection with `defineSearchCollection` and the `field` DSL:
+Instead of a Drizzle `pgTable`, define a collection with `SearchCollectionFactory.define` and the `field` DSL:
 
 ```typescript
 // src/models/entities/article.model.ts
 import { model } from '@venizia/ignis';
 import {
   BaseSearchEntity,
-  defineSearchCollection,
+  SearchCollectionFactory,
   field,
   TSearchDocument,
 } from '@venizia/ignis/typesense';
@@ -40,7 +40,7 @@ import {
   },
 })
 export class ArticleDocument extends BaseSearchEntity<typeof ArticleDocument.schema> {
-  static override schema = defineSearchCollection({
+  static override schema = SearchCollectionFactory.define({
     name: 'articles',
     fields: [
       field.id(),
@@ -80,7 +80,7 @@ The same `@model` settings you use with Drizzle entities - `hiddenProperties`, `
 
 Each `flags` object may set `searchable`, `filterable`, `facet`, `sortable`, `optional` (all `boolean`). Note: `searchable`/`filterable` have no direct Typesense wire equivalent - Typesense indexes every field by default - so they're dropped at compile time. Only `facet`, `optional`, and `sortable` (mapped to Typesense's `sort`) actually reach the compiled collection schema. They're still worth setting for documentation/intent and for future engines that do distinguish them.
 
-`defineSearchCollection` validates at call time: throws on an empty `name`, empty `fields`, duplicate field names, a non-`string` `id` field, or an unknown `defaultSort` field reference.
+`SearchCollectionFactory.define` validates at call time: throws on an empty `name`, empty `fields`, duplicate field names, a non-`string` `id` field, or an unknown `defaultSort` field reference.
 
 ### `TSearchDocument<T>`
 
@@ -149,7 +149,7 @@ See [Searching](#searching-with-search-mode) for querying these fields with `mod
 Declare synonym sets on the collection; they are provisioned alongside it at `configure()`:
 
 ```typescript
-static override schema = defineSearchCollection({
+static override schema = SearchCollectionFactory.define({
   name: 'articles',
   fields: [ /* ... */ ],
   synonyms: [
@@ -179,7 +179,7 @@ await connector.linkSynonymSets({ collection: 'articles', synonymSets: ['article
 // src/datasources/search.datasource.ts
 import { datasource } from '@venizia/ignis';
 import { TypesenseDataSource } from '@venizia/ignis/typesense';
-import { applicationEnvironment, int } from '@venizia/ignis-helpers';
+import { applicationEnvironment, ParseUtility } from '@venizia/ignis-helpers';
 
 @datasource()
 export class SearchDataSource extends TypesenseDataSource {
@@ -190,7 +190,7 @@ export class SearchDataSource extends TypesenseDataSource {
         nodes: [
           {
             host: applicationEnvironment.get<string>('APP_ENV_TYPESENSE_HOST'),
-            port: int(applicationEnvironment.get<string>('APP_ENV_TYPESENSE_PORT')),
+            port: ParseUtility.toInt({ input: applicationEnvironment.get<string>('APP_ENV_TYPESENSE_PORT') }),
             protocol: applicationEnvironment.get<string>('APP_ENV_TYPESENSE_PROTOCOL'),
           },
         ],
@@ -481,7 +481,7 @@ await articleRepository.updateById({
 });
 ```
 
-This is the same `throwNotSupported` convention used everywhere in the framework for capabilities an engine doesn't implement - see [Connectors](/references/base/connectors) and [Transactions](./transactions).
+This is the same `NotSupportedUtility.throwNotSupported` convention used everywhere in the framework for capabilities an engine doesn't implement - see [Connectors](/references/base/connectors) and [Transactions](./transactions).
 
 ## See Also
 

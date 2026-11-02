@@ -5,17 +5,17 @@ import { join } from 'node:path';
 import ts from 'typescript';
 import { CodemodCommand } from '../cli/codemod';
 import { CodemodFiles } from '../cli/codemod/files';
-import { migrateModelSettings } from '../cli/codemod/model-settings';
+import { ModelSettingsCodemod } from '../cli/codemod/model-settings';
 
 const run = (source: string) => {
-  return migrateModelSettings({ typescript: ts, fileName: 'product.model.ts', source });
+  return ModelSettingsCodemod.migrate({ typescript: ts, fileName: 'product.model.ts', source });
 };
 
 const model = (settings: string) =>
   `@model({ type: 'entity', settings: ${settings} })\nclass Product {}\n`;
 const migrated = (settings: string) => run(model(settings)).output;
 
-describe('migrateModelSettings - each old key', () => {
+describe('ModelSettingsCodemod.migrate - each old key', () => {
   test('defaultFilter becomes query.filter', () => {
     expect(migrated('{ defaultFilter: { where: { isDeleted: false } } }')).toBe(
       model('{ query: { filter: { where: { isDeleted: false } } } }'),
@@ -74,7 +74,7 @@ describe('migrateModelSettings - each old key', () => {
   });
 });
 
-describe('migrateModelSettings - combinations', () => {
+describe('ModelSettingsCodemod.migrate - combinations', () => {
   test('every old key together, with hiddenProperties and authorize left where they were', () => {
     const result = run(`@model({
   type: 'entity',
@@ -135,7 +135,7 @@ class Product {}
   });
 });
 
-describe('migrateModelSettings - an existing query or access', () => {
+describe('ModelSettingsCodemod.migrate - an existing query or access', () => {
   test('old limits join an existing query.filter', () => {
     expect(migrated('{ query: { filter: { where: {} } }, defaultLimit: 5, maxLimit: 9 }')).toBe(
       model('{ query: { filter: { where: {} }, limit: { default: 5, max: 9 } }, }'),
@@ -170,7 +170,7 @@ describe('migrateModelSettings - an existing query or access', () => {
   });
 });
 
-describe('migrateModelSettings - comments and formatting', () => {
+describe('ModelSettingsCodemod.migrate - comments and formatting', () => {
   test('a comment above a moved property stays above the new property', () => {
     const result = run(`@model({
   settings: {
@@ -204,7 +204,7 @@ class Product {}
   });
 });
 
-describe('migrateModelSettings - never guesses', () => {
+describe('ModelSettingsCodemod.migrate - never guesses', () => {
   test.each([
     [
       'a variable',
@@ -308,7 +308,7 @@ describe('migrateModelSettings - never guesses', () => {
   });
 });
 
-describe('migrateModelSettings - idempotence', () => {
+describe('ModelSettingsCodemod.migrate - idempotence', () => {
   test.each([
     '{ defaultFilter: { where: {} }, defaultLimit: 1, maxLimit: 2, scopeFilter: { resolve, writeGuard: "assign", sharedRows: true } }',
     '{ query: { limit: { max: 9 } }, defaultLimit: 5 }',
@@ -400,20 +400,24 @@ describe('devz codemod model-settings - the command', () => {
   test('without --check, left-untouched models do not change the exit code', async () => {
     write('src/a.model.ts', '@model({ settings: shared })\nclass A {}\n');
 
-    expect(await CodemodCommand.run({ root, args: ['model-settings'] })).toBe(0);
-    expect(await CodemodCommand.run({ root, args: ['model-settings', '--write'] })).toBe(0);
+    const result = await CodemodCommand.run({ root, args: ['model-settings'] });
+    expect(result).toBe(0);
+    const result2 = await CodemodCommand.run({ root, args: ['model-settings', '--write'] });
+    expect(result2).toBe(0);
   });
 
   test('--check exits 0 when nothing would change', async () => {
     write('src/a.model.ts', model('{ query: { limit: { default: 5 } } }'));
 
-    expect(await CodemodCommand.run({ root, args: ['model-settings', '--check'] })).toBe(0);
+    const result = await CodemodCommand.run({ root, args: ['model-settings', '--check'] });
+    expect(result).toBe(0);
   });
 
   test('without --write it is a dry run: lists the change, writes nothing, exits 0', async () => {
     write('src/a.model.ts', model('{ defaultLimit: 5 }'));
 
-    expect(await CodemodCommand.run({ root, args: ['model-settings'] })).toBe(0);
+    const result = await CodemodCommand.run({ root, args: ['model-settings'] });
+    expect(result).toBe(0);
 
     expect(read('src/a.model.ts')).toBe(model('{ defaultLimit: 5 }'));
     expect(logs.join('\n')).toContain('would change');
@@ -423,10 +427,12 @@ describe('devz codemod model-settings - the command', () => {
   test('--write writes the files and exits 0; a second run changes nothing', async () => {
     write('src/a.model.ts', model('{ defaultLimit: 5 }'));
 
-    expect(await CodemodCommand.run({ root, args: ['model-settings', '--write'] })).toBe(0);
+    const result = await CodemodCommand.run({ root, args: ['model-settings', '--write'] });
+    expect(result).toBe(0);
     expect(read('src/a.model.ts')).toBe(model('{ query: { limit: { default: 5 } } }'));
 
-    expect(await CodemodCommand.run({ root, args: ['model-settings', '--check'] })).toBe(0);
+    const result2 = await CodemodCommand.run({ root, args: ['model-settings', '--check'] });
+    expect(result2).toBe(0);
   });
 
   test('paths limit the run to those files or folders', async () => {
@@ -445,7 +451,8 @@ describe('devz codemod model-settings - the command', () => {
     write('src/types.d.ts', model('{ defaultLimit: 5 }'));
     write('src/plain.ts', 'export const settings = { defaultLimit: 5 };\n');
 
-    expect(await CodemodCommand.run({ root, args: ['model-settings', '--check'] })).toBe(0);
+    const result = await CodemodCommand.run({ root, args: ['model-settings', '--check'] });
+    expect(result).toBe(0);
   });
 
   test('untouched cases are printed with file, line and column', async () => {
@@ -467,7 +474,8 @@ describe('devz codemod model-settings - the command', () => {
     write('generated/b.model.ts', model('{ defaultLimit: 6 }'));
     write('src/c.model.ts', model('{ defaultLimit: 7 }'));
 
-    expect(await CodemodCommand.run({ root, args: ['model-settings', '--write'] })).toBe(0);
+    const result = await CodemodCommand.run({ root, args: ['model-settings', '--write'] });
+    expect(result).toBe(0);
 
     expect(read('.agents/local/worktrees/other/src/a.model.ts')).toBe(model('{ defaultLimit: 5 }'));
     expect(read('generated/b.model.ts')).toBe(model('{ defaultLimit: 6 }'));
@@ -502,7 +510,8 @@ describe('devz codemod model-settings - the command', () => {
     execFileSync('git', ['init', '-q'], { cwd: join(root, 'vendor') });
     write('vendor/src/a.model.ts', model('{ defaultLimit: 5 }'));
 
-    expect(await CodemodCommand.run({ root, args: ['model-settings', '--write'] })).toBe(0);
+    const result = await CodemodCommand.run({ root, args: ['model-settings', '--write'] });
+    expect(result).toBe(0);
 
     expect(read('vendor/src/a.model.ts')).toBe(model('{ defaultLimit: 5 }'));
   });
@@ -516,7 +525,8 @@ describe('devz codemod model-settings - the command', () => {
       ['model-settings', '-h', '--write'],
     ]) {
       logs.length = 0;
-      expect(await CodemodCommand.run({ root, args })).toBe(0);
+      const result = await CodemodCommand.run({ root, args });
+      expect(result).toBe(0);
       expect(logs.join('\n')).toContain('Usage: devz codemod model-settings');
     }
 
@@ -531,7 +541,8 @@ describe('devz codemod model-settings - the command', () => {
     write('src/a.model.ts', model('{ defaultLimit: 5 }'));
 
     for (const flag of ['--halp', '--dry-run', '-w']) {
-      expect(await CodemodCommand.run({ root, args: ['model-settings', flag, '--write'] })).toBe(2);
+      const result = await CodemodCommand.run({ root, args: ['model-settings', flag, '--write'] });
+      expect(result).toBe(2);
     }
 
     expect(errors.join('\n')).toContain('unknown option "--halp"');
@@ -542,9 +553,11 @@ describe('devz codemod model-settings - the command', () => {
     spyOn(console, 'error').mockImplementation(() => {});
     write('src/a.model.ts', model('{ defaultLimit: 5 }'));
 
-    expect(await CodemodCommand.run({ root, args: ['model-settings', '--write', '--check'] })).toBe(
-      2,
-    );
+    const result = await CodemodCommand.run({
+      root,
+      args: ['model-settings', '--write', '--check'],
+    });
+    expect(result).toBe(2);
     expect(read('src/a.model.ts')).toBe(model('{ defaultLimit: 5 }'));
   });
 
@@ -567,12 +580,13 @@ describe('devz codemod model-settings - the command', () => {
       errors.push(args.join(' '));
     });
 
-    expect(await CodemodCommand.run({ root, args: ['nope'] })).toBe(2);
+    const result = await CodemodCommand.run({ root, args: ['nope'] });
+    expect(result).toBe(2);
     expect(errors.join('\n')).toContain('Usage: devz codemod model-settings');
   });
 });
 
-describe('migrateModelSettings - skipMigrate', () => {
+describe('ModelSettingsCodemod.migrate - skipMigrate', () => {
   const skip = (metadata: string) => `@model({ ${metadata} })\nclass Product {}\n`;
 
   test('skipMigrate: true becomes migration: { use: false }', () => {

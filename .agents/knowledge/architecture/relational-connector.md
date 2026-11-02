@@ -208,7 +208,7 @@ repository-level convenience over `beginTransaction()`, not a new capability.
 **If `execute` ends the owned transaction itself**, `runInTransaction` never ends it a second time.
 It tells the outcome apart through `TRANSACTION_STATE_KEY` (`transaction-lifecycle.ts`), a
 `Symbol.for('@venizia/ignis-connectors/transaction-state')` well-known symbol read by
-`isTransactionCommitted({ transaction })` (`transaction-state.ts`) - a registry symbol rather than a
+`TransactionLifecycle.isCommitted({ transaction })` (same file) - a registry symbol rather than a
 class check, so it recognises a handle or double built on `TransactionLifecycle` even when the
 repository and the transaction load from different module copies (a `@venizia/ignis/testing` double
 from one installed copy with a `@venizia/ignis-connectors` repository from another).
@@ -223,7 +223,7 @@ returns success while that commit can still go on to fail.
 ## Relation building crosses the kernel boundary through a registry
 
 `RepositoryMetadataMixin` builds Drizzle relations but must never import Drizzle: one value import
-of `createRelations` drags `drizzle-orm` into every graph that uses `@repository`. The seam is
+of `RelationsFactory` drags `drizzle-orm` into every graph that uses `@repository`. The seam is
 `RelationBuilderRegistry` (`packages/kernel/src/helpers/inversion/common/relation-builder.ts`), a
 class with static `set`/`resolve` whose `TRelationBuilder` signature is typed in `unknown`s, so the
 kernel names no engine type. `resolveModelRelations()` calls `RelationBuilderRegistry.resolve()`,
@@ -316,7 +316,7 @@ overrides only `operators`, `jsonNeedsNumericCast`, `buildJsonWhereCondition` an
 **one** abstract member, `composeJsonSet({ target, path, value })`. It owns the plain-versus-JSON
 split, the column-not-found throws, `toUpdateData`, and the two path validators - and that last part
 is why it is a base rather than a copied skeleton: an engine composing through `sql.raw` is
-injectable the moment it forgets `validateJsonPathComponents`.
+injectable the moment it forgets `JsonPathUtility.validateJsonPathComponents`.
 
 Each call receives the expression built so far, so two paths on one column nest rather than discard
 each other. For a one-level path `UpdateBuilder` returns `jsonb_set(target, '{"a"}', '"v"'::jsonb, true)`.

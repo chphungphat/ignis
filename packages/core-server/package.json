@@ -1,6 +1,6 @@
 {
   "name": "@venizia/ignis",
-  "version": "0.4.5",
+  "version": "0.4.7-4",
   "description": "TypeScript server framework with decorator-based DI, the repository pattern and a component system, on Hono. Features auto-generated OpenAPI docs, Drizzle ORM type-safe SQL, JWT/Basic authentication, Casbin authorization, convention-based bootstrapping, and pluggable components for health checks, Swagger UI, mail, Socket.IO, and static assets. Built for Bun and Node.js.",
   "keywords": [
     "access-control",
@@ -183,8 +183,7 @@
   },
   "scripts": {
     "test": "bun test ./src",
-    "force-update": "sh ../../scripts/build/force-update.sh",
-    "prepublishOnly": "make rebuild"
+    "force-update": "sh ../../scripts/build/force-update.sh"
   },
   "dependencies": {
     "@venizia/ignis-connectors": "workspace:*",
@@ -308,7 +307,8 @@
   "vulcan": {
     "presets": {
       "app": "./dist/presets/app/preset.json",
-      "lib": "./dist/presets/lib/preset.json"
+      "lib": "./dist/presets/lib/preset.json",
+      "shared": "./dist/presets/shared/preset.json"
     }
   }
 }

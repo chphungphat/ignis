@@ -9,28 +9,22 @@ import type {
   ISearchSynonymSetScoped,
 } from '@/search/core';
 import { BaseSearchConnector } from '@/search/core';
+import { RecordUtility } from '@/common/internal';
 import { SearchConnectorInternal } from '@/search/core/internal';
 import type { ISynonym } from '@/search/core/models';
 import { getError, isApplicationError } from '@venizia/ignis-helpers/core';
 import { Client } from 'typesense';
 import {
   EntryOutcomes,
-  isRecord,
   isSynonymResponse,
-  mapSearchResult,
-  readBooleanFlag,
-  readNumberField,
-  readStringField,
-  toSynonym,
   TypesenseInternal,
+  TypesenseMapper,
+  TypesensePayloadReader,
 } from './internal';
 import {
-  buildEmptySearchResponse,
   MAX_HITS_PER_PAGE,
   MAX_MULTI_SEARCH_ENTRIES,
-  mergeWindowedResults,
-  readRequestedPage,
-  toSearchWindows,
+  TypesenseSearchWindows,
   type ISearchWindow,
 } from './internal/pagination-windows';
 import type {
@@ -148,7 +142,7 @@ export class TypesenseConnector extends BaseSearchConnector {
   async getHealth(): Promise<{ ok: boolean }> {
     try {
       const health = await this.client.health.retrieve();
-      return { ok: readBooleanFlag({ value: health, key: 'ok' }) };
+      return { ok: TypesensePayloadReader.readBooleanFlag({ value: health, key: 'ok' }) };
     } catch (error) {
       this.logger
         .for(this.getHealth.name)
@@ -166,7 +160,8 @@ export class TypesenseConnector extends BaseSearchConnector {
     const rs = await this.runEngineCall<TCollectionSchema | void>({
       method: this.createCollection.name,
       run: async () => {
-        const created = (await this.client.collections().create(schema)) as TCollectionSchema;
+        const result = await this.client.collections().create(schema);
+        const created = result as TCollectionSchema;
         logger.info('Created collection | name: %s', schema.name);
         return created;
       },
@@ -204,7 +199,8 @@ export class TypesenseConnector extends BaseSearchConnector {
     const rs = await this.runEngineCall({
       method: this.getCollection.name,
       run: async () => {
-        const collection = (await this.client.collections(name).retrieve()) as TCollectionSchema;
+        const result = await this.client.collections(name).retrieve();
+        const collection = result as TCollectionSchema;
         return collection;
       },
       tolerate: this.notFoundTolerance({
@@ -219,7 +215,8 @@ export class TypesenseConnector extends BaseSearchConnector {
     const rs = await this.runEngineCall({
       method: this.listCollections.name,
       run: async () => {
-        const collections = (await this.client.collections().retrieve()) as TCollectionSchema[];
+        const result = await this.client.collections().retrieve();
+        const collections = result as TCollectionSchema[];
         return collections;
       },
     });
@@ -315,8 +312,11 @@ export class TypesenseConnector extends BaseSearchConnector {
       method: this.getAlias.name,
       run: async () => {
         const alias = await this.client.aliases(name).retrieve();
-        const aliasName = readStringField({ value: alias, key: 'name' });
-        const collectionName = readStringField({ value: alias, key: 'collection_name' });
+        const aliasName = TypesensePayloadReader.readStringField({ value: alias, key: 'name' });
+        const collectionName = TypesensePayloadReader.readStringField({
+          value: alias,
+          key: 'collection_name',
+        });
 
         if (aliasName === undefined || collectionName === undefined) {
           SearchConnectorInternal.throwNotFoundError({
@@ -368,8 +368,9 @@ export class TypesenseConnector extends BaseSearchConnector {
       method: this.getSynonymSet.name,
       run: async () => {
         const result = await this.client.synonymSets(name).retrieve();
-        const items = isRecord(result) && Array.isArray(result.items) ? result.items : [];
-        return items.filter(isSynonymResponse).map(toSynonym);
+        const items =
+          RecordUtility.isRecord(result) && Array.isArray(result.items) ? result.items : [];
+        return items.filter(isSynonymResponse).map((value) => TypesenseMapper.toSynonym({ value }));
       },
       tolerate: this.notFoundFallback({
         method: this.getSynonymSet.name,
@@ -388,7 +389,7 @@ export class TypesenseConnector extends BaseSearchConnector {
         const result = await this.client.synonymSets().retrieve();
         const sets = Array.isArray(result) ? result : [];
         return sets
-          .filter(isRecord)
+          .filter(RecordUtility.isRecord)
           .map((set) => set.name)
           .filter((setName): setName is string => typeof setName === 'string');
       },
@@ -453,10 +454,8 @@ export class TypesenseConnector extends BaseSearchConnector {
     const rs = await this.runEngineCall({
       method: this.createDocument.name,
       run: async () => {
-        const created = (await this.client
-          .collections(collection)
-          .documents()
-          .create(document)) as T;
+        const result = await this.client.collections(collection).documents().create(document);
+        const created = result as T;
         return created;
       },
       // Typesense rejects a duplicate id with 409; surfaced as the neutral already_exists conflict rather than the generic sanitized 503 - same contract Meilisearch's createDocument throws.
@@ -481,7 +480,8 @@ export class TypesenseConnector extends BaseSearchConnector {
     const rs = await this.runEngineCall({
       method: this.getDocument.name,
       run: async () => {
-        const document = (await this.client.collections(collection).documents(id).retrieve()) as T;
+        const result = await this.client.collections(collection).documents(id).retrieve();
+        const document = result as T;
         return document;
       },
       tolerate: this.notFoundTolerance({
@@ -523,10 +523,8 @@ export class TypesenseConnector extends BaseSearchConnector {
     const rs = await this.runEngineCall({
       method: this.upsertDocument.name,
       run: async () => {
-        const upserted = (await this.client
-          .collections(collection)
-          .documents()
-          .upsert(document)) as T;
+        const result = await this.client.collections(collection).documents().upsert(document);
+        const upserted = result as T;
         return upserted;
       },
     });
@@ -549,10 +547,8 @@ export class TypesenseConnector extends BaseSearchConnector {
     const rs = await this.runEngineCall({
       method: this.updateDocument.name,
       run: async () => {
-        const updated = (await this.client
-          .collections(collection)
-          .documents(id)
-          .update(document)) as T;
+        const result = await this.client.collections(collection).documents(id).update(document);
+        const updated = result as T;
         return updated;
       },
       tolerate: this.notFoundTolerance({
@@ -654,10 +650,11 @@ export class TypesenseConnector extends BaseSearchConnector {
           ? { action, throwOnFail: false, ['dirty_values']: dirtyValues }
           : { action, throwOnFail: false };
 
-        const batchResult = (await this.client
+        const result = await this.client
           .collections(collection)
           .documents()
-          .import(batch, importParams)) as TImportResponse[];
+          .import(batch, importParams);
+        const batchResult = result as TImportResponse[];
 
         const tally = this.tallyImportResponses({ batchResult, responses });
         successCount += tally.successCount;
@@ -722,7 +719,12 @@ export class TypesenseConnector extends BaseSearchConnector {
           .documents()
           .update(document, updateOptions);
 
-        return { updatedCount: readNumberField({ value: result, key: 'num_updated' }) };
+        return {
+          updatedCount: TypesensePayloadReader.readNumberField({
+            value: result,
+            key: 'num_updated',
+          }),
+        };
       },
     });
     return rs;
@@ -757,7 +759,7 @@ export class TypesenseConnector extends BaseSearchConnector {
         }
 
         const result = await this.client.collections(collection).documents().delete(deleteParams);
-        return readNumberField({ value: result, key: 'num_deleted' });
+        return TypesensePayloadReader.readNumberField({ value: result, key: 'num_deleted' });
       },
     });
     return rs;
@@ -784,7 +786,7 @@ export class TypesenseConnector extends BaseSearchConnector {
         logger.info(
           'Truncated collection | name: %s | deleted: %d',
           collection,
-          readNumberField({ value: result, key: 'num_deleted' }),
+          TypesensePayloadReader.readNumberField({ value: result, key: 'num_deleted' }),
         );
         return true;
       },
@@ -817,10 +819,8 @@ export class TypesenseConnector extends BaseSearchConnector {
           exportParams['include_fields'] = includeFields.join(',');
         }
 
-        const exported = (await this.client
-          .collections(collection)
-          .documents()
-          .export(exportParams)) as string;
+        const result = await this.client.collections(collection).documents().export(exportParams);
+        const exported = result as string;
         return exported;
       },
     });
@@ -875,8 +875,10 @@ export class TypesenseConnector extends BaseSearchConnector {
     const logger = this.logger.for(this.search.name);
 
     const paramsRecord = params as unknown as Record<string, unknown>;
-    const requested = readRequestedPage(paramsRecord);
-    const windows = requested ? toSearchWindows(requested) : [{ offset: 0, limit: 0 }];
+    const requested = TypesenseSearchWindows.readRequestedPage({ params: paramsRecord });
+    const windows = requested
+      ? TypesenseSearchWindows.toSearchWindows(requested)
+      : [{ offset: 0, limit: 0 }];
 
     if (windows.length > 1 && requested) {
       this.assertSplittablePage({ paramsRecord, requested, windows, collection });
@@ -901,12 +903,13 @@ export class TypesenseConnector extends BaseSearchConnector {
             return entry as { collection: string } & Partial<TSearchParams>;
           });
 
-    const response = (await this.executeMultiSearch({
+    const result2 = await this.executeMultiSearch({
       method: this.search.name,
       entries,
       commonParams: {},
       options,
-    })) as IMultiSearchResult<T>;
+    });
+    const response = result2 as IMultiSearchResult<T>;
 
     const results = Array.isArray(response?.results) ? response.results : [];
     const mapped: ISearchResult<T>[] = [];
@@ -919,7 +922,9 @@ export class TypesenseConnector extends BaseSearchConnector {
         // a warning rather than a 500.
         case EntryOutcomes.MISSING_COLLECTION: {
           logger.warn('Search on missing collection, returning empty | name: %s', collection);
-          return mapSearchResult<T>(buildEmptySearchResponse());
+          return TypesenseMapper.mapSearchResult<T>({
+            raw: TypesenseSearchWindows.buildEmptySearchResponse(),
+          });
         }
 
         // A failed entry arrives inside an HTTP 200. Answering empty here would make a rejected
@@ -934,17 +939,19 @@ export class TypesenseConnector extends BaseSearchConnector {
         // A real result - map it and let the loop collect the remaining windows.
         case EntryOutcomes.OK:
         default: {
-          mapped.push(mapSearchResult<T>(entry));
+          mapped.push(TypesenseMapper.mapSearchResult<T>({ raw: entry }));
           break;
         }
       }
     }
 
     if (mapped.length === 0) {
-      return mapSearchResult<T>(buildEmptySearchResponse());
+      return TypesenseMapper.mapSearchResult<T>({
+        raw: TypesenseSearchWindows.buildEmptySearchResponse(),
+      });
     }
 
-    return mergeWindowedResults<T>(mapped);
+    return TypesenseSearchWindows.mergeWindowedResults<T>({ results: mapped });
   }
 
   /**
@@ -1011,13 +1018,14 @@ export class TypesenseConnector extends BaseSearchConnector {
     // engine never returned, with no honest value for `request_params` or `page`, and it would
     // destroy the 1:1 correspondence that indexing depends on. `search()` can merge because it maps
     // to a neutral ISearchResult; here the caller is handed engine-shaped objects.
-    const rs = (await this.executeMultiSearch({
+    const result = await this.executeMultiSearch({
       method: this.multiSearch.name,
       entries: searches,
       union: isUnion,
       commonParams,
       options,
-    })) as IMultiSearchResult<T> | IUnionSearchResult<T>;
+    });
+    const rs = result as IMultiSearchResult<T> | IUnionSearchResult<T>;
 
     return rs;
   }

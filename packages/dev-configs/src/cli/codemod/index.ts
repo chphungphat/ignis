@@ -1,9 +1,11 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
+import { AsyncStyleCommand } from './async-style';
 import { ConstClassesCommand } from './const-classes';
 import { DropRedundantCastsCommand } from './drop-redundant-casts';
 import { CodemodFiles } from './files';
-import { migrateModelSettings } from './model-settings';
+import { ModelSettingsCodemod } from './model-settings';
+import { NamespaceFunctionsCommand } from './namespace-functions';
 
 const USAGE = `Usage: devz codemod model-settings [paths...] [--write | --check]
 
@@ -61,8 +63,18 @@ export class CodemodCommand {
       return ConstClassesCommand.run({ root: opts.root, args: rest });
     }
 
+    if (name === 'async-style') {
+      return AsyncStyleCommand.run({ root: opts.root, args: rest });
+    }
+
+    if (name === 'namespace-functions') {
+      return NamespaceFunctionsCommand.run({ root: opts.root, args: rest });
+    }
+
     if (args.includes(CodemodFlags.HELP) || args.includes(CodemodFlags.HELP_SHORT)) {
-      console.log(`${USAGE}\n\n${DropRedundantCastsCommand.USAGE}\n\n${ConstClassesCommand.USAGE}`);
+      console.log(
+        `${USAGE}\n\n${DropRedundantCastsCommand.USAGE}\n\n${ConstClassesCommand.USAGE}\n\n${AsyncStyleCommand.USAGE}\n\n${NamespaceFunctionsCommand.USAGE}`,
+      );
       return 0;
     }
 
@@ -96,7 +108,8 @@ export class CodemodCommand {
 
     let typescript: typeof import('typescript');
     try {
-      typescript = (await import('typescript')).default;
+      const result2 = await import('typescript');
+      typescript = result2.default;
     } catch {
       console.error('devz codemod: the "typescript" package is required to read your sources');
       return 1;
@@ -121,7 +134,7 @@ export class CodemodCommand {
           continue;
         }
 
-        const result = migrateModelSettings({ typescript, fileName: file, source });
+        const result = ModelSettingsCodemod.migrate({ typescript, fileName: file, source });
         const shown = relative(opts.root, file) || file;
 
         for (const report of result.reports) {

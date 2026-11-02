@@ -1,7 +1,7 @@
-import { extraPolicyDefinitionColumns, model } from '@venizia/ignis';
+import { AuthModelColumns, model } from '@venizia/ignis';
 import {
-  generateIdColumnDefs,
-  generateTzColumnDefs,
+  PostgresIdEnricher,
+  PostgresTzEnricher,
   ModelFactory,
   type TEntityObject,
 } from '@venizia/ignis/postgres';
@@ -9,9 +9,9 @@ import { pgTable } from 'drizzle-orm/pg-core';
 
 /** Casbin reads its policies from here: role assignments and permission grants, each in a domain. */
 export const policyDefinitionTable = pgTable('PolicyDefinition', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-  ...generateTzColumnDefs(),
-  ...extraPolicyDefinitionColumns({ idType: 'string' }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresTzEnricher.generateColumnDefs(),
+  ...AuthModelColumns.buildPolicyDefinition({ idType: 'string' }),
 });
 
 @model()
